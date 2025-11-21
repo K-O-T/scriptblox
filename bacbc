@@ -1,0 +1,12 @@
+local args = {
+  {
+    Price = -1.8e308,
+    Name = "BaseBlock",
+    Upgrade = "Common"
+  },
+  "https://scriptblox.com/u/__K__"
+}
+game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("BuyedDetail"):FireServer(unpack(args))
+
+print("Blocks List: BaseBlock, BaseSlab, CarbonBlock, CarbonSlab, Canister, Cestern, DoubleCanister, BigCanister, BaseWheel, ImprovedWheel, BigWheel, BaseEngine, ImporvedEngine, V8Engine, V10Engine")
+print("Upgrades List: Common, Golden, Diamond.")
