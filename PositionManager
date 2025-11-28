@@ -1,13 +1,18 @@
+--TYSM Deepseek
+--1.1 (rounded ui and added size changing)
+
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
 local Mouse = Player:GetMouse()
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
 
 -- Основной GUI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "PositionManager"
+ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = Player.PlayerGui
 
 local MainFrame = Instance.new("Frame")
@@ -20,8 +25,42 @@ MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 
 local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 8)
+UICorner.CornerRadius = UDim.new(0, 12)
 UICorner.Parent = MainFrame
+
+-- Элементы для растягивания
+local resizeHandles = {}
+local resizeCorners = {
+    {name = "TopLeft", position = UDim2.new(0, -5, 0, -5), size = UDim2.new(0, 10, 0, 10), cursor = "SizeNWSE"},
+    {name = "TopRight", position = UDim2.new(1, -5, 0, -5), size = UDim2.new(0, 10, 0, 10), cursor = "SizeNESW"},
+    {name = "BottomLeft", position = UDim2.new(0, -5, 1, -5), size = UDim2.new(0, 10, 0, 10), cursor = "SizeNESW"},
+    {name = "BottomRight", position = UDim2.new(1, -5, 1, -5), size = UDim2.new(0, 10, 0, 10), cursor = "SizeNWSE"},
+    {name = "Top", position = UDim2.new(0, 5, 0, -5), size = UDim2.new(1, -10, 0, 10), cursor = "SizeNS"},
+    {name = "Bottom", position = UDim2.new(0, 5, 1, -5), size = UDim2.new(1, -10, 0, 10), cursor = "SizeNS"},
+    {name = "Left", position = UDim2.new(0, -5, 0, 5), size = UDim2.new(0, 10, 1, -10), cursor = "SizeEW"},
+    {name = "Right", position = UDim2.new(1, -5, 0, 5), size = UDim2.new(0, 10, 1, -10), cursor = "SizeEW"}
+}
+
+for _, cornerData in ipairs(resizeCorners) do
+    local handle = Instance.new("Frame")
+    handle.Name = cornerData.name
+    handle.Size = cornerData.size
+    handle.Position = cornerData.position
+    handle.BackgroundTransparency = 1
+    handle.ZIndex = 10
+    handle.Parent = MainFrame
+    
+    local connection
+    handle.MouseEnter:Connect(function()
+        Mouse.Icon = "rbxasset://SystemCursors/" .. cornerData.cursor
+    end)
+    
+    handle.MouseLeave:Connect(function()
+        Mouse.Icon = "rbxasset://SystemCursors/Arrow"
+    end)
+    
+    resizeHandles[cornerData.name] = handle
+end
 
 -- Заголовок для перемещения
 local TitleBar = Instance.new("Frame")
@@ -29,7 +68,12 @@ TitleBar.Name = "TitleBar"
 TitleBar.Size = UDim2.new(1, 0, 0, 30)
 TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 TitleBar.BorderSizePixel = 0
+TitleBar.ZIndex = 5
 TitleBar.Parent = MainFrame
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 12)
+TitleCorner.Parent = TitleBar
 
 local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Name = "TitleLabel"
@@ -39,6 +83,7 @@ TitleLabel.Text = "Position Manager"
 TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleLabel.TextSize = 14
 TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.ZIndex = 6
 TitleLabel.Parent = TitleBar
 
 local MinimizeButton = Instance.new("TextButton")
@@ -50,7 +95,12 @@ MinimizeButton.BorderSizePixel = 0
 MinimizeButton.Text = "_"
 MinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 MinimizeButton.TextSize = 16
+MinimizeButton.ZIndex = 6
 MinimizeButton.Parent = TitleBar
+
+local MinimizeCorner = Instance.new("UICorner")
+MinimizeCorner.CornerRadius = UDim.new(0, 6)
+MinimizeCorner.Parent = MinimizeButton
 
 local CloseButton = Instance.new("TextButton")
 CloseButton.Name = "CloseButton"
@@ -61,7 +111,12 @@ CloseButton.BorderSizePixel = 0
 CloseButton.Text = "X"
 CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 CloseButton.TextSize = 12
+CloseButton.ZIndex = 6
 CloseButton.Parent = TitleBar
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 6)
+CloseCorner.Parent = CloseButton
 
 -- Контент
 local ContentFrame = Instance.new("Frame")
@@ -81,7 +136,7 @@ SaveSection.BorderSizePixel = 0
 SaveSection.Parent = ContentFrame
 
 local SaveSectionCorner = Instance.new("UICorner")
-SaveSectionCorner.CornerRadius = UDim.new(0, 6)
+SaveSectionCorner.CornerRadius = UDim.new(0, 8)
 SaveSectionCorner.Parent = SaveSection
 
 local PositionNameBox = Instance.new("TextBox")
@@ -96,6 +151,10 @@ PositionNameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 PositionNameBox.TextSize = 12
 PositionNameBox.Parent = SaveSection
 
+local PositionNameCorner = Instance.new("UICorner")
+PositionNameCorner.CornerRadius = UDim.new(0, 6)
+PositionNameCorner.Parent = PositionNameBox
+
 local SaveButton = Instance.new("TextButton")
 SaveButton.Name = "SaveButton"
 SaveButton.Size = UDim2.new(1, -20, 0, 30)
@@ -107,6 +166,25 @@ SaveButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 SaveButton.TextSize = 12
 SaveButton.Parent = SaveSection
 
+local SaveButtonCorner = Instance.new("UICorner")
+SaveButtonCorner.CornerRadius = UDim.new(0, 6)
+SaveButtonCorner.Parent = SaveButton
+
+-- Градиент для кнопки Save
+local SaveButtonGradient = Instance.new("UIGradient")
+SaveButtonGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 200, 200))
+})
+SaveButtonGradient.Enabled = false
+SaveButtonGradient.Parent = SaveButton
+
+local SaveButtonStroke = Instance.new("UIStroke")
+SaveButtonStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+SaveButtonStroke.Color = Color3.fromRGB(100, 200, 100)
+SaveButtonStroke.Thickness = 0
+SaveButtonStroke.Parent = SaveButton
+
 -- Секция ручного ввода координат
 local ManualSection = Instance.new("Frame")
 ManualSection.Name = "ManualSection"
@@ -117,7 +195,7 @@ ManualSection.BorderSizePixel = 0
 ManualSection.Parent = ContentFrame
 
 local ManualSectionCorner = Instance.new("UICorner")
-ManualSectionCorner.CornerRadius = UDim.new(0, 6)
+ManualSectionCorner.CornerRadius = UDim.new(0, 8)
 ManualSectionCorner.Parent = ManualSection
 
 local ManualLabel = Instance.new("TextLabel")
@@ -133,7 +211,7 @@ ManualLabel.Parent = ManualSection
 
 local XBox = Instance.new("TextBox")
 XBox.Name = "XBox"
-XBox.Size = UDim2.new(0.32, 0, 0, 30)
+XBox.Size = UDim2.new(0.3, 0, 0, 30)
 XBox.Position = UDim2.new(0, 10, 0, 30)
 XBox.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
 XBox.BorderSizePixel = 0
@@ -143,10 +221,14 @@ XBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 XBox.TextSize = 12
 XBox.Parent = ManualSection
 
+local XBoxCorner = Instance.new("UICorner")
+XBoxCorner.CornerRadius = UDim.new(0, 6)
+XBoxCorner.Parent = XBox
+
 local YBox = Instance.new("TextBox")
 YBox.Name = "YBox"
-YBox.Size = UDim2.new(0.32, 0, 0, 30)
-YBox.Position = UDim2.new(0.34, 10, 0, 30)
+YBox.Size = UDim2.new(0.3, 0, 0, 30)
+YBox.Position = UDim2.new(0.33, 10, 0, 30)
 YBox.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
 YBox.BorderSizePixel = 0
 YBox.PlaceholderText = "Y"
@@ -155,10 +237,14 @@ YBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 YBox.TextSize = 12
 YBox.Parent = ManualSection
 
+local YBoxCorner = Instance.new("UICorner")
+YBoxCorner.CornerRadius = UDim.new(0, 6)
+YBoxCorner.Parent = YBox
+
 local ZBox = Instance.new("TextBox")
 ZBox.Name = "ZBox"
-ZBox.Size = UDim2.new(0.32, 0, 0, 30)
-ZBox.Position = UDim2.new(0.68, -10, 0, 30)
+ZBox.Size = UDim2.new(0.3, 0, 0, 30)
+ZBox.Position = UDim2.new(0.66, 10, 0, 30)
 ZBox.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
 ZBox.BorderSizePixel = 0
 ZBox.PlaceholderText = "Z"
@@ -166,6 +252,10 @@ ZBox.Text = ""
 ZBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 ZBox.TextSize = 12
 ZBox.Parent = ManualSection
+
+local ZBoxCorner = Instance.new("UICorner")
+ZBoxCorner.CornerRadius = UDim.new(0, 6)
+ZBoxCorner.Parent = ZBox
 
 local ManualNameBox = Instance.new("TextBox")
 ManualNameBox.Name = "ManualNameBox"
@@ -179,6 +269,10 @@ ManualNameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 ManualNameBox.TextSize = 12
 ManualNameBox.Parent = ManualSection
 
+local ManualNameCorner = Instance.new("UICorner")
+ManualNameCorner.CornerRadius = UDim.new(0, 6)
+ManualNameCorner.Parent = ManualNameBox
+
 local AddManualButton = Instance.new("TextButton")
 AddManualButton.Name = "AddManualButton"
 AddManualButton.Size = UDim2.new(1, -20, 0, 30)
@@ -190,17 +284,36 @@ AddManualButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 AddManualButton.TextSize = 12
 AddManualButton.Parent = ManualSection
 
+local AddManualCorner = Instance.new("UICorner")
+AddManualCorner.CornerRadius = UDim.new(0, 6)
+AddManualCorner.Parent = AddManualButton
+
+-- Градиент для кнопки Add Manual
+local AddManualGradient = Instance.new("UIGradient")
+AddManualGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 200, 200))
+})
+AddManualGradient.Enabled = false
+AddManualGradient.Parent = AddManualButton
+
+local AddManualStroke = Instance.new("UIStroke")
+AddManualStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+AddManualStroke.Color = Color3.fromRGB(80, 140, 200)
+AddManualStroke.Thickness = 0
+AddManualStroke.Parent = AddManualButton
+
 -- Список позиций
 local PositionsFrame = Instance.new("Frame")
 PositionsFrame.Name = "PositionsFrame"
-PositionsFrame.Size = UDim2.new(1, -20, 0, 200)
+PositionsFrame.Size = UDim2.new(1, -20, 1, -270) -- Автоматически растягивается вниз
 PositionsFrame.Position = UDim2.new(0, 10, 0, 260)
 PositionsFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 PositionsFrame.BorderSizePixel = 0
 PositionsFrame.Parent = ContentFrame
 
 local PositionsFrameCorner = Instance.new("UICorner")
-PositionsFrameCorner.CornerRadius = UDim.new(0, 6)
+PositionsFrameCorner.CornerRadius = UDim.new(0, 8)
 PositionsFrameCorner.Parent = PositionsFrame
 
 local PositionsLabel = Instance.new("TextLabel")
@@ -216,18 +329,103 @@ PositionsLabel.Parent = PositionsFrame
 
 local PositionsScroll = Instance.new("ScrollingFrame")
 PositionsScroll.Name = "PositionsScroll"
-PositionsScroll.Size = UDim2.new(1, -20, 1, -35)
+PositionsScroll.Size = UDim2.new(1, -20, 1, -35) -- Растягивается на всю высоту PositionsFrame
 PositionsScroll.Position = UDim2.new(0, 10, 0, 25)
 PositionsScroll.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 PositionsScroll.BorderSizePixel = 0
 PositionsScroll.ScrollBarThickness = 6
+PositionsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y -- Автоматически расширяется по содержимому
 PositionsScroll.Parent = PositionsFrame
 
+local PositionsScrollCorner = Instance.new("UICorner")
+PositionsScrollCorner.CornerRadius = UDim.new(0, 6)
+PositionsScrollCorner.Parent = PositionsScroll
+
 local PositionsListLayout = Instance.new("UIListLayout")
+PositionsListLayout.Padding = UDim.new(0, 5)
 PositionsListLayout.Parent = PositionsScroll
+
+-- Автоматическое обновление размера скролла
+PositionsListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    PositionsScroll.CanvasSize = UDim2.new(0, 0, 0, PositionsListLayout.AbsoluteContentSize.Y)
+end)
 
 -- Хранилище позиций
 local Positions = {}
+
+-- Система сохранения данных
+local DATA_KEY = "PositionManagerData"
+local function SaveData()
+    local data = {
+        uiPosition = {MainFrame.Position.X.Scale, MainFrame.Position.X.Offset, MainFrame.Position.Y.Scale, MainFrame.Position.Y.Offset},
+        uiSize = {MainFrame.Size.X.Scale, MainFrame.Size.X.Offset, MainFrame.Size.Y.Scale, MainFrame.Size.Y.Offset},
+        positions = Positions
+    }
+    
+    local success, result = pcall(function()
+        return HttpService:JSONEncode(data)
+    end)
+    
+    if success then
+        pcall(function()
+            local dataStore = game:GetService("DataStoreService"):GetDataStore("PositionManager")
+            dataStore:SetAsync(Player.UserId .. "_" .. DATA_KEY, result)
+        end)
+    end
+end
+
+local function LoadData()
+    local success, result = pcall(function()
+        local dataStore = game:GetService("DataStoreService"):GetDataStore("PositionManager")
+        return dataStore:GetAsync(Player.UserId .. "_" .. DATA_KEY)
+    end)
+    
+    if success and result then
+        local success2, data = pcall(function()
+            return HttpService:JSONDecode(result)
+        end)
+        
+        if success2 and data then
+            -- Восстанавливаем позицию и размер UI
+            if data.uiPosition then
+                MainFrame.Position = UDim2.new(data.uiPosition[1], data.uiPosition[2], data.uiPosition[3], data.uiPosition[4])
+            end
+            
+            if data.uiSize then
+                MainFrame.Size = UDim2.new(data.uiSize[1], data.uiSize[2], data.uiSize[3], data.uiSize[4])
+            end
+            
+            -- Восстанавливаем позиции
+            if data.positions then
+                Positions = data.positions
+                for _, positionData in ipairs(Positions) do
+                    CreatePositionEntry(positionData)
+                end
+            end
+            
+            return true
+        end
+    end
+    return false
+end
+
+-- Функция для создания анимированного эффекта градиента
+local function SetupButtonHoverEffect(button, gradient, stroke)
+    local hoverTweenIn = TweenService:Create(gradient, TweenInfo.new(0.2), {Enabled = true})
+    local hoverTweenOut = TweenService:Create(gradient, TweenInfo.new(0.2), {Enabled = false})
+    local strokeTweenIn = TweenService:Create(stroke, TweenInfo.new(0.2), {Thickness = 2})
+    local strokeTweenOut = TweenService:Create(stroke, TweenInfo.new(0.2), {Thickness = 0})
+    
+    button.MouseEnter:Connect(function()
+        hoverTweenIn:Play()
+        strokeTweenIn:Play()
+    end)
+    
+    button.MouseLeave:Connect(function()
+        hoverTweenOut:Play()
+        strokeTweenOut:Play()
+    end)
+end
 
 -- Функции
 local function CreatePositionEntry(positionData)
@@ -238,7 +436,7 @@ local function CreatePositionEntry(positionData)
     EntryFrame.BorderSizePixel = 0
     
     local EntryCorner = Instance.new("UICorner")
-    EntryCorner.CornerRadius = UDim.new(0, 4)
+    EntryCorner.CornerRadius = UDim.new(0, 6)
     EntryCorner.Parent = EntryFrame
     
     local NameLabel = Instance.new("TextLabel")
@@ -264,6 +462,10 @@ local function CreatePositionEntry(positionData)
     NameBox.Visible = false
     NameBox.Parent = EntryFrame
     
+    local NameBoxCorner = Instance.new("UICorner")
+    NameBoxCorner.CornerRadius = UDim.new(0, 4)
+    NameBoxCorner.Parent = NameBox
+    
     local CoordsLabel = Instance.new("TextLabel")
     CoordsLabel.Name = "CoordsLabel"
     CoordsLabel.Size = UDim2.new(0.7, -5, 0, 25)
@@ -286,6 +488,24 @@ local function CreatePositionEntry(positionData)
     TeleportButton.TextSize = 10
     TeleportButton.Parent = EntryFrame
     
+    local TeleportCorner = Instance.new("UICorner")
+    TeleportCorner.CornerRadius = UDim.new(0, 4)
+    TeleportCorner.Parent = TeleportButton
+    
+    local TeleportGradient = Instance.new("UIGradient")
+    TeleportGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 200, 200))
+    })
+    TeleportGradient.Enabled = false
+    TeleportGradient.Parent = TeleportButton
+    
+    local TeleportStroke = Instance.new("UIStroke")
+    TeleportStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    TeleportStroke.Color = Color3.fromRGB(100, 200, 100)
+    TeleportStroke.Thickness = 0
+    TeleportStroke.Parent = TeleportButton
+    
     local EditButton = Instance.new("TextButton")
     EditButton.Name = "EditButton"
     EditButton.Size = UDim2.new(0.3, -5, 0, 25)
@@ -297,10 +517,28 @@ local function CreatePositionEntry(positionData)
     EditButton.TextSize = 10
     EditButton.Parent = EntryFrame
     
+    local EditCorner = Instance.new("UICorner")
+    EditCorner.CornerRadius = UDim.new(0, 4)
+    EditCorner.Parent = EditButton
+    
+    local EditGradient = Instance.new("UIGradient")
+    EditGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 200, 200))
+    })
+    EditGradient.Enabled = false
+    EditGradient.Parent = EditButton
+    
+    local EditStroke = Instance.new("UIStroke")
+    EditStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    EditStroke.Color = Color3.fromRGB(180, 150, 100)
+    EditStroke.Thickness = 0
+    EditStroke.Parent = EditButton
+    
     local DeleteButton = Instance.new("TextButton")
     DeleteButton.Name = "DeleteButton"
-    DeleteButton.Size = UDim2.new(1, -10, 0, 20)
-    DeleteButton.Position = UDim2.new(0, 5, 1, -25)
+    DeleteButton.Size = UDim2.new(0.3, -5, 0, 25)
+    DeleteButton.Position = UDim2.new(0.7, 5, 0, 5) -- Та же позиция, что и TeleportButton
     DeleteButton.BackgroundColor3 = Color3.fromRGB(120, 70, 70)
     DeleteButton.BorderSizePixel = 0
     DeleteButton.Text = "Delete"
@@ -308,6 +546,29 @@ local function CreatePositionEntry(positionData)
     DeleteButton.TextSize = 10
     DeleteButton.Visible = false
     DeleteButton.Parent = EntryFrame
+    
+    local DeleteCorner = Instance.new("UICorner")
+    DeleteCorner.CornerRadius = UDim.new(0, 4)
+    DeleteCorner.Parent = DeleteButton
+    
+    local DeleteGradient = Instance.new("UIGradient")
+    DeleteGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 200, 200))
+    })
+    DeleteGradient.Enabled = false
+    DeleteGradient.Parent = DeleteButton
+    
+    local DeleteStroke = Instance.new("UIStroke")
+    DeleteStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    DeleteStroke.Color = Color3.fromRGB(200, 100, 100)
+    DeleteStroke.Thickness = 0
+    DeleteStroke.Parent = DeleteButton
+    
+    -- Настройка эффектов наведения
+    SetupButtonHoverEffect(TeleportButton, TeleportGradient, TeleportStroke)
+    SetupButtonHoverEffect(EditButton, EditGradient, EditStroke)
+    SetupButtonHoverEffect(DeleteButton, DeleteGradient, DeleteStroke)
     
     -- Функционал кнопок
     TeleportButton.MouseButton1Click:Connect(function()
@@ -323,6 +584,7 @@ local function CreatePositionEntry(positionData)
         NameLabel.Visible = not editing
         NameBox.Visible = editing
         DeleteButton.Visible = editing
+        TeleportButton.Visible = not editing -- Скрываем кнопку телепортации при редактировании
         EditButton.Text = editing and "Save" or "Edit"
         
         if editing then
@@ -350,13 +612,16 @@ local function CreatePositionEntry(positionData)
 end
 
 local function SavePositions()
-    -- В реальной игре здесь можно сохранять в DataStore
+    SaveData()
     print("Positions saved:", #Positions)
 end
 
 local function LoadPositions()
-    -- В реальной игре здесь можно загружать из DataStore
-    print("Positions loaded")
+    if LoadData() then
+        print("Positions loaded from save")
+    else
+        print("No saved positions found")
+    end
 end
 
 -- Обработчики событий
@@ -404,6 +669,10 @@ AddManualButton.MouseButton1Click:Connect(function()
     SavePositions()
 end)
 
+-- Настройка эффектов наведения для основных кнопок
+SetupButtonHoverEffect(SaveButton, SaveButtonGradient, SaveButtonStroke)
+SetupButtonHoverEffect(AddManualButton, AddManualGradient, AddManualStroke)
+
 -- Функционал перемещения окна
 local dragging = false
 local dragInput
@@ -424,6 +693,7 @@ TitleBar.InputBegan:Connect(function(input)
         input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
                 dragging = false
+                SaveData() -- Сохраняем позицию при завершении перемещения
             end
         end)
     end
@@ -441,6 +711,67 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
+-- Функционал растягивания окна
+local resizing = false
+local resizeInput
+local resizeStart
+local startSize
+local resizeType
+
+for name, handle in pairs(resizeHandles) do
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            resizing = true
+            resizeStart = input.Position
+            startSize = MainFrame.Size
+            startPos = MainFrame.Position
+            resizeType = name
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    resizing = false
+                    SaveData() -- Сохраняем размер при завершении растягивания
+                end
+            end)
+        end
+    end)
+    
+    handle.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            resizeInput = input
+        end
+    end)
+end
+
+UserInputService.InputChanged:Connect(function(input)
+    if resizing and input == resizeInput then
+        local delta = input.Position - resizeStart
+        local newSize = UDim2.new(startSize.X.Scale, startSize.X.Offset, startSize.Y.Scale, startSize.Y.Offset)
+        local newPosition = UDim2.new(startPos.X.Scale, startPos.X.Offset, startPos.Y.Scale, startPos.Y.Offset)
+        
+        if resizeType:find("Left") then
+            local newWidth = math.max(250, startSize.X.Offset - delta.X)
+            newSize = UDim2.new(0, newWidth, newSize.Y.Scale, newSize.Y.Offset)
+            newPosition = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, newPosition.Y.Scale, newPosition.Y.Offset)
+        elseif resizeType:find("Right") then
+            local newWidth = math.max(250, startSize.X.Offset + delta.X)
+            newSize = UDim2.new(0, newWidth, newSize.Y.Scale, newSize.Y.Offset)
+        end
+        
+        if resizeType:find("Top") then
+            local newHeight = math.max(150, startSize.Y.Offset - delta.Y)
+            newSize = UDim2.new(newSize.X.Scale, newSize.X.Offset, 0, newHeight)
+            newPosition = UDim2.new(newPosition.X.Scale, newPosition.X.Offset, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        elseif resizeType:find("Bottom") then
+            local newHeight = math.max(150, startSize.Y.Offset + delta.Y)
+            newSize = UDim2.new(newSize.X.Scale, newSize.X.Offset, 0, newHeight)
+        end
+        
+        MainFrame.Size = newSize
+        MainFrame.Position = newPosition
+    end
+end)
+
 -- Сворачивание/разворачивание
 local minimized = false
 MinimizeButton.MouseButton1Click:Connect(function()
@@ -452,16 +783,24 @@ MinimizeButton.MouseButton1Click:Connect(function()
         MainFrame.Size = UDim2.new(0, 300, 0, 400)
         MinimizeButton.Text = "_"
     end
+    SaveData()
 end)
 
 CloseButton.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
 
--- Загрузка сохраненных позиций
+-- Автоматическое сохранение каждые 30 секунд
+local autoSaveConnection
+autoSaveConnection = RunService.Heartbeat:Connect(function()
+    wait(30)
+    SaveData()
+end)
+
+-- Загрузка сохраненных позиций при старте
 LoadPositions()
 
--- Обновление списка позиций
-for _, positionData in ipairs(Positions) do
-    CreatePositionEntry(positionData)
-end
+-- Обработка выхода из игры
+game:BindToClose(function()
+    SaveData()
+end)
