@@ -1,5 +1,5 @@
 --TYSM Deepseek
---1.1 (rounded ui and added size changing)
+--1.11 (Scaling Bugfix)
 
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
