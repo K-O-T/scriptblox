@@ -1,6 +1,3 @@
---TYSM Deepseek
---1.11 (Scaling Bugfix)
-
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
 local Mouse = Player:GetMouse()
@@ -8,13 +5,52 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
+local Camera = workspace.CurrentCamera
 
--- Основной GUI
+-- ================= ФУНКЦИИ СОХРАНЕНИЯ (ДЛЯ EXECUTOR) =================
+local function saveDataToFile(data)
+    local success, json = pcall(function()
+        return HttpService:JSONEncode(data)
+    end)
+    if success then
+        local filename = "PositionManager_" .. Player.UserId .. ".json"
+        local writeSuccess, err = pcall(function()
+            writefile(filename, json)
+        end)
+        if not writeSuccess then
+            warn("Failed to save data:", err)
+        end
+    end
+end
+
+local function loadDataFromFile()
+    local filename = "PositionManager_" .. Player.UserId .. ".json"
+    local fileExists, err = pcall(function()
+        return isfile(filename)
+    end)
+    if fileExists then
+        local readSuccess, content = pcall(function()
+            return readfile(filename)
+        end)
+        if readSuccess then
+            local decodeSuccess, data = pcall(function()
+                return HttpService:JSONDecode(content)
+            end)
+            if decodeSuccess then
+                return data
+            end
+        end
+    end
+    return nil
+end
+
+-- ================= ОСНОВНОЙ GUI =================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "PositionManager"
 ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = Player.PlayerGui
+ScreenGui.Parent = Player:WaitForChild("PlayerGui")
 
+-- ================= ОСНОВНОЕ ОКНО =================
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 300, 0, 400)
@@ -28,14 +64,11 @@ local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 12)
 UICorner.Parent = MainFrame
 
--- Элементы для растягивания
+-- Элементы для растягивания (без верхних ручек)
 local resizeHandles = {}
 local resizeCorners = {
-    {name = "TopLeft", position = UDim2.new(0, -5, 0, -5), size = UDim2.new(0, 10, 0, 10), cursor = "SizeNWSE"},
-    {name = "TopRight", position = UDim2.new(1, -5, 0, -5), size = UDim2.new(0, 10, 0, 10), cursor = "SizeNESW"},
     {name = "BottomLeft", position = UDim2.new(0, -5, 1, -5), size = UDim2.new(0, 10, 0, 10), cursor = "SizeNESW"},
     {name = "BottomRight", position = UDim2.new(1, -5, 1, -5), size = UDim2.new(0, 10, 0, 10), cursor = "SizeNWSE"},
-    {name = "Top", position = UDim2.new(0, 5, 0, -5), size = UDim2.new(1, -10, 0, 10), cursor = "SizeNS"},
     {name = "Bottom", position = UDim2.new(0, 5, 1, -5), size = UDim2.new(1, -10, 0, 10), cursor = "SizeNS"},
     {name = "Left", position = UDim2.new(0, -5, 0, 5), size = UDim2.new(0, 10, 1, -10), cursor = "SizeEW"},
     {name = "Right", position = UDim2.new(1, -5, 0, 5), size = UDim2.new(0, 10, 1, -10), cursor = "SizeEW"}
@@ -50,7 +83,6 @@ for _, cornerData in ipairs(resizeCorners) do
     handle.ZIndex = 10
     handle.Parent = MainFrame
     
-    local connection
     handle.MouseEnter:Connect(function()
         Mouse.Icon = "rbxasset://SystemCursors/" .. cornerData.cursor
     end)
@@ -62,7 +94,7 @@ for _, cornerData in ipairs(resizeCorners) do
     resizeHandles[cornerData.name] = handle
 end
 
--- Заголовок для перемещения
+-- Заголовок основного окна
 local TitleBar = Instance.new("Frame")
 TitleBar.Name = "TitleBar"
 TitleBar.Size = UDim2.new(1, 0, 0, 30)
@@ -75,14 +107,34 @@ local TitleCorner = Instance.new("UICorner")
 TitleCorner.CornerRadius = UDim.new(0, 12)
 TitleCorner.Parent = TitleBar
 
+-- Кнопка открытия мульти-окна
+local MultiButton = Instance.new("TextButton")
+MultiButton.Name = "MultiButton"
+MultiButton.Size = UDim2.new(0, 30, 0, 30)
+MultiButton.Position = UDim2.new(0, 5, 0, 0)
+MultiButton.BackgroundColor3 = Color3.fromRGB(60, 120, 60)
+MultiButton.BorderSizePixel = 0
+MultiButton.Text = "+"
+MultiButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MultiButton.TextSize = 16
+MultiButton.ZIndex = 6
+MultiButton.Parent = TitleBar
+
+local MultiButtonCorner = Instance.new("UICorner")
+MultiButtonCorner.CornerRadius = UDim.new(0, 6)
+MultiButtonCorner.Parent = MultiButton
+
+-- Заголовок по центру
 local TitleLabel = Instance.new("TextLabel")
 TitleLabel.Name = "TitleLabel"
-TitleLabel.Size = UDim2.new(0.7, 0, 1, 0)
+TitleLabel.Size = UDim2.new(1, -90, 1, 0)
+TitleLabel.Position = UDim2.new(0, 40, 0, 0)
 TitleLabel.BackgroundTransparency = 1
 TitleLabel.Text = "Position Manager"
 TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 TitleLabel.TextSize = 14
 TitleLabel.Font = Enum.Font.GothamBold
+TitleLabel.TextXAlignment = Enum.TextXAlignment.Center
 TitleLabel.ZIndex = 6
 TitleLabel.Parent = TitleBar
 
@@ -118,7 +170,7 @@ local CloseCorner = Instance.new("UICorner")
 CloseCorner.CornerRadius = UDim.new(0, 6)
 CloseCorner.Parent = CloseButton
 
--- Контент
+-- Контент основного окна
 local ContentFrame = Instance.new("Frame")
 ContentFrame.Name = "ContentFrame"
 ContentFrame.Size = UDim2.new(1, 0, 1, -30)
@@ -126,7 +178,7 @@ ContentFrame.Position = UDim2.new(0, 0, 0, 30)
 ContentFrame.BackgroundTransparency = 1
 ContentFrame.Parent = MainFrame
 
--- Секция сохранения позиции
+-- Секция сохранения текущей позиции
 local SaveSection = Instance.new("Frame")
 SaveSection.Name = "SaveSection"
 SaveSection.Size = UDim2.new(1, -20, 0, 100)
@@ -170,7 +222,6 @@ local SaveButtonCorner = Instance.new("UICorner")
 SaveButtonCorner.CornerRadius = UDim.new(0, 6)
 SaveButtonCorner.Parent = SaveButton
 
--- Градиент для кнопки Save
 local SaveButtonGradient = Instance.new("UIGradient")
 SaveButtonGradient.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
@@ -228,7 +279,7 @@ XBoxCorner.Parent = XBox
 local YBox = Instance.new("TextBox")
 YBox.Name = "YBox"
 YBox.Size = UDim2.new(0.3, 0, 0, 30)
-YBox.Position = UDim2.new(0.33, 10, 0, 30)
+YBox.Position = UDim2.new(0.33, 5, 0, 30)
 YBox.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
 YBox.BorderSizePixel = 0
 YBox.PlaceholderText = "Y"
@@ -244,7 +295,7 @@ YBoxCorner.Parent = YBox
 local ZBox = Instance.new("TextBox")
 ZBox.Name = "ZBox"
 ZBox.Size = UDim2.new(0.3, 0, 0, 30)
-ZBox.Position = UDim2.new(0.66, 10, 0, 30)
+ZBox.Position = UDim2.new(0.66, 5, 0, 30)
 ZBox.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
 ZBox.BorderSizePixel = 0
 ZBox.PlaceholderText = "Z"
@@ -288,7 +339,6 @@ local AddManualCorner = Instance.new("UICorner")
 AddManualCorner.CornerRadius = UDim.new(0, 6)
 AddManualCorner.Parent = AddManualButton
 
--- Градиент для кнопки Add Manual
 local AddManualGradient = Instance.new("UIGradient")
 AddManualGradient.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
@@ -303,10 +353,10 @@ AddManualStroke.Color = Color3.fromRGB(80, 140, 200)
 AddManualStroke.Thickness = 0
 AddManualStroke.Parent = AddManualButton
 
--- Список позиций
+-- Список позиций основного окна
 local PositionsFrame = Instance.new("Frame")
 PositionsFrame.Name = "PositionsFrame"
-PositionsFrame.Size = UDim2.new(1, -20, 1, -270) -- Автоматически растягивается вниз
+PositionsFrame.Size = UDim2.new(1, -20, 1, -270)
 PositionsFrame.Position = UDim2.new(0, 10, 0, 260)
 PositionsFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 PositionsFrame.BorderSizePixel = 0
@@ -329,12 +379,12 @@ PositionsLabel.Parent = PositionsFrame
 
 local PositionsScroll = Instance.new("ScrollingFrame")
 PositionsScroll.Name = "PositionsScroll"
-PositionsScroll.Size = UDim2.new(1, -20, 1, -35) -- Растягивается на всю высоту PositionsFrame
+PositionsScroll.Size = UDim2.new(1, -20, 1, -35)
 PositionsScroll.Position = UDim2.new(0, 10, 0, 25)
 PositionsScroll.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 PositionsScroll.BorderSizePixel = 0
 PositionsScroll.ScrollBarThickness = 6
-PositionsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y -- Автоматически расширяется по содержимому
+PositionsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 PositionsScroll.Parent = PositionsFrame
 
 local PositionsScrollCorner = Instance.new("UICorner")
@@ -345,303 +395,808 @@ local PositionsListLayout = Instance.new("UIListLayout")
 PositionsListLayout.Padding = UDim.new(0, 5)
 PositionsListLayout.Parent = PositionsScroll
 
--- Автоматическое обновление размера скролла
 PositionsListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     PositionsScroll.CanvasSize = UDim2.new(0, 0, 0, PositionsListLayout.AbsoluteContentSize.Y)
 end)
 
--- Хранилище позиций
-local Positions = {}
+-- ================= ОКНО МУЛЬТИ-ТЕЛЕПОРТАЦИИ =================
+local MultiFrame = Instance.new("Frame")
+MultiFrame.Name = "MultiFrame"
+MultiFrame.Size = UDim2.new(0, 300, 0, 500)
+MultiFrame.Position = UDim2.new(0, 360, 0, 50)
+MultiFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MultiFrame.BorderSizePixel = 0
+MultiFrame.ClipsDescendants = true
+MultiFrame.Visible = false
+MultiFrame.Parent = ScreenGui
 
--- Система сохранения данных
-local DATA_KEY = "PositionManagerData"
-local function SaveData()
-    local data = {
-        uiPosition = {MainFrame.Position.X.Scale, MainFrame.Position.X.Offset, MainFrame.Position.Y.Scale, MainFrame.Position.Y.Offset},
-        uiSize = {MainFrame.Size.X.Scale, MainFrame.Size.X.Offset, MainFrame.Size.Y.Scale, MainFrame.Size.Y.Offset},
-        positions = Positions
-    }
+local MultiCorner = Instance.new("UICorner")
+MultiCorner.CornerRadius = UDim.new(0, 12)
+MultiCorner.Parent = MultiFrame
+
+-- Элементы для растягивания мульти-окна
+local multiResizeHandles = {}
+local multiResizeCorners = {
+    {name = "BottomLeft", position = UDim2.new(0, -5, 1, -5), size = UDim2.new(0, 10, 0, 10), cursor = "SizeNESW"},
+    {name = "BottomRight", position = UDim2.new(1, -5, 1, -5), size = UDim2.new(0, 10, 0, 10), cursor = "SizeNWSE"},
+    {name = "Bottom", position = UDim2.new(0, 5, 1, -5), size = UDim2.new(1, -10, 0, 10), cursor = "SizeNS"},
+    {name = "Left", position = UDim2.new(0, -5, 0, 5), size = UDim2.new(0, 10, 1, -10), cursor = "SizeEW"},
+    {name = "Right", position = UDim2.new(1, -5, 0, 5), size = UDim2.new(0, 10, 1, -10), cursor = "SizeEW"}
+}
+
+for _, cornerData in ipairs(multiResizeCorners) do
+    local handle = Instance.new("Frame")
+    handle.Name = cornerData.name
+    handle.Size = cornerData.size
+    handle.Position = cornerData.position
+    handle.BackgroundTransparency = 1
+    handle.ZIndex = 10
+    handle.Parent = MultiFrame
     
-    local success, result = pcall(function()
-        return HttpService:JSONEncode(data)
+    handle.MouseEnter:Connect(function()
+        Mouse.Icon = "rbxasset://SystemCursors/" .. cornerData.cursor
     end)
     
-    if success then
-        pcall(function()
-            local dataStore = game:GetService("DataStoreService"):GetDataStore("PositionManager")
-            dataStore:SetAsync(Player.UserId .. "_" .. DATA_KEY, result)
-        end)
-    end
+    handle.MouseLeave:Connect(function()
+        Mouse.Icon = "rbxasset://SystemCursors/Arrow"
+    end)
+    
+    multiResizeHandles[cornerData.name] = handle
 end
 
-local function LoadData()
-    local success, result = pcall(function()
-        local dataStore = game:GetService("DataStoreService"):GetDataStore("PositionManager")
-        return dataStore:GetAsync(Player.UserId .. "_" .. DATA_KEY)
-    end)
+-- Заголовок мульти-окна
+local MultiTitleBar = Instance.new("Frame")
+MultiTitleBar.Name = "MultiTitleBar"
+MultiTitleBar.Size = UDim2.new(1, 0, 0, 30)
+MultiTitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MultiTitleBar.BorderSizePixel = 0
+MultiTitleBar.Parent = MultiFrame
+
+local MultiTitleCorner = Instance.new("UICorner")
+MultiTitleCorner.CornerRadius = UDim.new(0, 12)
+MultiTitleCorner.Parent = MultiTitleBar
+
+local MultiTitleLabel = Instance.new("TextLabel")
+MultiTitleLabel.Name = "MultiTitleLabel"
+MultiTitleLabel.Size = UDim2.new(1, -90, 1, 0)
+MultiTitleLabel.Position = UDim2.new(0, 40, 0, 0)
+MultiTitleLabel.BackgroundTransparency = 1
+MultiTitleLabel.Text = "Multi Teleport"
+MultiTitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+MultiTitleLabel.TextSize = 14
+MultiTitleLabel.Font = Enum.Font.GothamBold
+MultiTitleLabel.TextXAlignment = Enum.TextXAlignment.Center
+MultiTitleLabel.Parent = MultiTitleBar
+
+local MultiMinimizeButton = Instance.new("TextButton")
+MultiMinimizeButton.Name = "MultiMinimizeButton"
+MultiMinimizeButton.Size = UDim2.new(0, 30, 0, 30)
+MultiMinimizeButton.Position = UDim2.new(1, -60, 0, 0)
+MultiMinimizeButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+MultiMinimizeButton.BorderSizePixel = 0
+MultiMinimizeButton.Text = "_"
+MultiMinimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MultiMinimizeButton.TextSize = 16
+MultiMinimizeButton.Parent = MultiTitleBar
+
+local MultiMinimizeCorner = Instance.new("UICorner")
+MultiMinimizeCorner.CornerRadius = UDim.new(0, 6)
+MultiMinimizeCorner.Parent = MultiMinimizeButton
+
+local MultiCloseButton = Instance.new("TextButton")
+MultiCloseButton.Name = "MultiCloseButton"
+MultiCloseButton.Size = UDim2.new(0, 30, 0, 30)
+MultiCloseButton.Position = UDim2.new(1, -30, 0, 0)
+MultiCloseButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+MultiCloseButton.BorderSizePixel = 0
+MultiCloseButton.Text = "X"
+MultiCloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MultiCloseButton.TextSize = 12
+MultiCloseButton.Parent = MultiTitleBar
+
+local MultiCloseCorner = Instance.new("UICorner")
+MultiCloseCorner.CornerRadius = UDim.new(0, 6)
+MultiCloseCorner.Parent = MultiCloseButton
+
+-- Контент мульти-окна
+local MultiContent = Instance.new("Frame")
+MultiContent.Name = "MultiContent"
+MultiContent.Size = UDim2.new(1, 0, 1, -30)
+MultiContent.Position = UDim2.new(0, 0, 0, 30)
+MultiContent.BackgroundTransparency = 1
+MultiContent.Parent = MultiFrame
+
+-- Секция добавления текущей позиции
+local MultiSaveSection = Instance.new("Frame")
+MultiSaveSection.Name = "MultiSaveSection"
+MultiSaveSection.Size = UDim2.new(1, -20, 0, 100)
+MultiSaveSection.Position = UDim2.new(0, 10, 0, 10)
+MultiSaveSection.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+MultiSaveSection.BorderSizePixel = 0
+MultiSaveSection.Parent = MultiContent
+
+local MultiSaveCorner = Instance.new("UICorner")
+MultiSaveCorner.CornerRadius = UDim.new(0, 8)
+MultiSaveCorner.Parent = MultiSaveSection
+
+local MultiPosNameBox = Instance.new("TextBox")
+MultiPosNameBox.Name = "MultiPosNameBox"
+MultiPosNameBox.Size = UDim2.new(1, -20, 0, 30)
+MultiPosNameBox.Position = UDim2.new(0, 10, 0, 10)
+MultiPosNameBox.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+MultiPosNameBox.BorderSizePixel = 0
+MultiPosNameBox.PlaceholderText = "Waypoint Name"
+MultiPosNameBox.Text = ""
+MultiPosNameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+MultiPosNameBox.TextSize = 12
+MultiPosNameBox.Parent = MultiSaveSection
+
+local MultiPosNameCorner = Instance.new("UICorner")
+MultiPosNameCorner.CornerRadius = UDim.new(0, 6)
+MultiPosNameCorner.Parent = MultiPosNameBox
+
+local MultiSaveButton = Instance.new("TextButton")
+MultiSaveButton.Name = "MultiSaveButton"
+MultiSaveButton.Size = UDim2.new(1, -20, 0, 30)
+MultiSaveButton.Position = UDim2.new(0, 10, 0, 50)
+MultiSaveButton.BackgroundColor3 = Color3.fromRGB(60, 120, 60)
+MultiSaveButton.BorderSizePixel = 0
+MultiSaveButton.Text = "Add Current Position"
+MultiSaveButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MultiSaveButton.TextSize = 12
+MultiSaveButton.Parent = MultiSaveSection
+
+local MultiSaveCornerBtn = Instance.new("UICorner")
+MultiSaveCornerBtn.CornerRadius = UDim.new(0, 6)
+MultiSaveCornerBtn.Parent = MultiSaveButton
+
+-- Секция ручного ввода
+local MultiManualSection = Instance.new("Frame")
+MultiManualSection.Name = "MultiManualSection"
+MultiManualSection.Size = UDim2.new(1, -20, 0, 130)
+MultiManualSection.Position = UDim2.new(0, 10, 0, 120)
+MultiManualSection.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+MultiManualSection.BorderSizePixel = 0
+MultiManualSection.Parent = MultiContent
+
+local MultiManualCorner = Instance.new("UICorner")
+MultiManualCorner.CornerRadius = UDim.new(0, 8)
+MultiManualCorner.Parent = MultiManualSection
+
+local MultiManualLabel = Instance.new("TextLabel")
+MultiManualLabel.Name = "MultiManualLabel"
+MultiManualLabel.Size = UDim2.new(1, -20, 0, 20)
+MultiManualLabel.Position = UDim2.new(0, 10, 0, 5)
+MultiManualLabel.BackgroundTransparency = 1
+MultiManualLabel.Text = "Manual Waypoint"
+MultiManualLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+MultiManualLabel.TextSize = 12
+MultiManualLabel.Font = Enum.Font.GothamBold
+MultiManualLabel.Parent = MultiManualSection
+
+local MultiXBox = Instance.new("TextBox")
+MultiXBox.Name = "MultiXBox"
+MultiXBox.Size = UDim2.new(0.3, 0, 0, 30)
+MultiXBox.Position = UDim2.new(0, 10, 0, 30)
+MultiXBox.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+MultiXBox.BorderSizePixel = 0
+MultiXBox.PlaceholderText = "X"
+MultiXBox.Text = ""
+MultiXBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+MultiXBox.TextSize = 12
+MultiXBox.Parent = MultiManualSection
+
+local MultiXBoxCorner = Instance.new("UICorner")
+MultiXBoxCorner.CornerRadius = UDim.new(0, 6)
+MultiXBoxCorner.Parent = MultiXBox
+
+local MultiYBox = Instance.new("TextBox")
+MultiYBox.Name = "MultiYBox"
+MultiYBox.Size = UDim2.new(0.3, 0, 0, 30)
+MultiYBox.Position = UDim2.new(0.33, 5, 0, 30)
+MultiYBox.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+MultiYBox.BorderSizePixel = 0
+MultiYBox.PlaceholderText = "Y"
+MultiYBox.Text = ""
+MultiYBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+MultiYBox.TextSize = 12
+MultiYBox.Parent = MultiManualSection
+
+local MultiYBoxCorner = Instance.new("UICorner")
+MultiYBoxCorner.CornerRadius = UDim.new(0, 6)
+MultiYBoxCorner.Parent = MultiYBox
+
+local MultiZBox = Instance.new("TextBox")
+MultiZBox.Name = "MultiZBox"
+MultiZBox.Size = UDim2.new(0.3, 0, 0, 30)
+MultiZBox.Position = UDim2.new(0.66, 5, 0, 30)
+MultiZBox.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+MultiZBox.BorderSizePixel = 0
+MultiZBox.PlaceholderText = "Z"
+MultiZBox.Text = ""
+MultiZBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+MultiZBox.TextSize = 12
+MultiZBox.Parent = MultiManualSection
+
+local MultiZBoxCorner = Instance.new("UICorner")
+MultiZBoxCorner.CornerRadius = UDim.new(0, 6)
+MultiZBoxCorner.Parent = MultiZBox
+
+local MultiManualNameBox = Instance.new("TextBox")
+MultiManualNameBox.Name = "MultiManualNameBox"
+MultiManualNameBox.Size = UDim2.new(1, -20, 0, 30)
+MultiManualNameBox.Position = UDim2.new(0, 10, 0, 65)
+MultiManualNameBox.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+MultiManualNameBox.BorderSizePixel = 0
+MultiManualNameBox.PlaceholderText = "Waypoint Name"
+MultiManualNameBox.Text = ""
+MultiManualNameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+MultiManualNameBox.TextSize = 12
+MultiManualNameBox.Parent = MultiManualSection
+
+local MultiManualNameCorner = Instance.new("UICorner")
+MultiManualNameCorner.CornerRadius = UDim.new(0, 6)
+MultiManualNameCorner.Parent = MultiManualNameBox
+
+local MultiAddManualButton = Instance.new("TextButton")
+MultiAddManualButton.Name = "MultiAddManualButton"
+MultiAddManualButton.Size = UDim2.new(1, -20, 0, 30)
+MultiAddManualButton.Position = UDim2.new(0, 10, 0, 100)
+MultiAddManualButton.BackgroundColor3 = Color3.fromRGB(60, 100, 150)
+MultiAddManualButton.BorderSizePixel = 0
+MultiAddManualButton.Text = "Add Manual Waypoint"
+MultiAddManualButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+MultiAddManualButton.TextSize = 12
+MultiAddManualButton.Parent = MultiManualSection
+
+local MultiAddManualCorner = Instance.new("UICorner")
+MultiAddManualCorner.CornerRadius = UDim.new(0, 6)
+MultiAddManualCorner.Parent = MultiAddManualButton
+
+-- Параметры мульти-телепортации
+local MultiOptions = Instance.new("Frame")
+MultiOptions.Name = "MultiOptions"
+MultiOptions.Size = UDim2.new(1, -20, 0, 80)
+MultiOptions.Position = UDim2.new(0, 10, 0, 260)
+MultiOptions.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+MultiOptions.BorderSizePixel = 0
+MultiOptions.Parent = MultiContent
+
+local MultiOptionsCorner = Instance.new("UICorner")
+MultiOptionsCorner.CornerRadius = UDim.new(0, 8)
+MultiOptionsCorner.Parent = MultiOptions
+
+local DelayLabel = Instance.new("TextLabel")
+DelayLabel.Name = "DelayLabel"
+DelayLabel.Size = UDim2.new(0.4, 0, 0, 30)
+DelayLabel.Position = UDim2.new(0, 10, 0, 5)
+DelayLabel.BackgroundTransparency = 1
+DelayLabel.Text = "Default Delay (s):"
+DelayLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+DelayLabel.TextSize = 12
+DelayLabel.TextXAlignment = Enum.TextXAlignment.Left
+DelayLabel.Parent = MultiOptions
+
+local DefaultDelayBox = Instance.new("TextBox")
+DefaultDelayBox.Name = "DefaultDelayBox"
+DefaultDelayBox.Size = UDim2.new(0.5, -20, 0, 30)
+DefaultDelayBox.Position = UDim2.new(0.45, 10, 0, 5)
+DefaultDelayBox.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+DefaultDelayBox.BorderSizePixel = 0
+DefaultDelayBox.PlaceholderText = "1.0"
+DefaultDelayBox.Text = "1"
+DefaultDelayBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+DefaultDelayBox.TextSize = 12
+DefaultDelayBox.Parent = MultiOptions
+
+local DefaultDelayCorner = Instance.new("UICorner")
+DefaultDelayCorner.CornerRadius = UDim.new(0, 6)
+DefaultDelayCorner.Parent = DefaultDelayBox
+
+local LoopCheckbox = Instance.new("TextButton")
+LoopCheckbox.Name = "LoopCheckbox"
+LoopCheckbox.Size = UDim2.new(0, 20, 0, 20)
+LoopCheckbox.Position = UDim2.new(0, 10, 0, 45)
+LoopCheckbox.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+LoopCheckbox.BorderSizePixel = 0
+LoopCheckbox.Text = "✓"
+LoopCheckbox.TextColor3 = Color3.fromRGB(255, 255, 255)
+LoopCheckbox.TextSize = 14
+LoopCheckbox.Parent = MultiOptions
+
+local LoopCheckboxCorner = Instance.new("UICorner")
+LoopCheckboxCorner.CornerRadius = UDim.new(0, 4)
+LoopCheckboxCorner.Parent = LoopCheckbox
+
+local LoopLabel = Instance.new("TextLabel")
+LoopLabel.Name = "LoopLabel"
+LoopLabel.Size = UDim2.new(0.4, 0, 0, 20)
+LoopLabel.Position = UDim2.new(0, 35, 0, 45)
+LoopLabel.BackgroundTransparency = 1
+LoopLabel.Text = "Loop"
+LoopLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+LoopLabel.TextSize = 12
+LoopLabel.TextXAlignment = Enum.TextXAlignment.Left
+LoopLabel.Parent = MultiOptions
+
+local ShuffleCheckbox = Instance.new("TextButton")
+ShuffleCheckbox.Name = "ShuffleCheckbox"
+ShuffleCheckbox.Size = UDim2.new(0, 20, 0, 20)
+ShuffleCheckbox.Position = UDim2.new(0.5, 10, 0, 45)
+ShuffleCheckbox.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+ShuffleCheckbox.BorderSizePixel = 0
+ShuffleCheckbox.Text = ""
+ShuffleCheckbox.TextColor3 = Color3.fromRGB(255, 255, 255)
+ShuffleCheckbox.TextSize = 14
+ShuffleCheckbox.Parent = MultiOptions
+
+local ShuffleCheckboxCorner = Instance.new("UICorner")
+ShuffleCheckboxCorner.CornerRadius = UDim.new(0, 4)
+ShuffleCheckboxCorner.Parent = ShuffleCheckbox
+
+local ShuffleLabel = Instance.new("TextLabel")
+ShuffleLabel.Name = "ShuffleLabel"
+ShuffleLabel.Size = UDim2.new(0.4, 0, 0, 20)
+ShuffleLabel.Position = UDim2.new(0.5, 35, 0, 45)
+ShuffleLabel.BackgroundTransparency = 1
+ShuffleLabel.Text = "Shuffle"
+ShuffleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+ShuffleLabel.TextSize = 12
+ShuffleLabel.TextXAlignment = Enum.TextXAlignment.Left
+ShuffleLabel.Parent = MultiOptions
+
+-- Состояние чекбоксов
+local loopEnabled = true
+local shuffleEnabled = false
+
+LoopCheckbox.MouseButton1Click:Connect(function()
+    loopEnabled = not loopEnabled
+    LoopCheckbox.Text = loopEnabled and "✓" or ""
+    saveData()
+end)
+
+ShuffleCheckbox.MouseButton1Click:Connect(function()
+    shuffleEnabled = not shuffleEnabled
+    ShuffleCheckbox.Text = shuffleEnabled and "✓" or ""
+    saveData()
+end)
+
+-- Список точек маршрута
+local MultiPointsFrame = Instance.new("Frame")
+MultiPointsFrame.Name = "MultiPointsFrame"
+MultiPointsFrame.Size = UDim2.new(1, -20, 1, -370)
+MultiPointsFrame.Position = UDim2.new(0, 10, 0, 350)
+MultiPointsFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+MultiPointsFrame.BorderSizePixel = 0
+MultiPointsFrame.Parent = MultiContent
+
+local MultiPointsCorner = Instance.new("UICorner")
+MultiPointsCorner.CornerRadius = UDim.new(0, 8)
+MultiPointsCorner.Parent = MultiPointsFrame
+
+local MultiPointsLabel = Instance.new("TextLabel")
+MultiPointsLabel.Name = "MultiPointsLabel"
+MultiPointsLabel.Size = UDim2.new(1, -20, 0, 20)
+MultiPointsLabel.Position = UDim2.new(0, 10, 0, 5)
+MultiPointsLabel.BackgroundTransparency = 1
+MultiPointsLabel.Text = "Waypoints"
+MultiPointsLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+MultiPointsLabel.TextSize = 12
+MultiPointsLabel.Font = Enum.Font.GothamBold
+MultiPointsLabel.Parent = MultiPointsFrame
+
+local MultiPointsScroll = Instance.new("ScrollingFrame")
+MultiPointsScroll.Name = "MultiPointsScroll"
+MultiPointsScroll.Size = UDim2.new(1, -20, 1, -35)
+MultiPointsScroll.Position = UDim2.new(0, 10, 0, 25)
+MultiPointsScroll.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+MultiPointsScroll.BorderSizePixel = 0
+MultiPointsScroll.ScrollBarThickness = 6
+MultiPointsScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+MultiPointsScroll.Parent = MultiPointsFrame
+
+local MultiPointsCornerInner = Instance.new("UICorner")
+MultiPointsCornerInner.CornerRadius = UDim.new(0, 6)
+MultiPointsCornerInner.Parent = MultiPointsScroll
+
+local MultiPointsListLayout = Instance.new("UIListLayout")
+MultiPointsListLayout.Padding = UDim.new(0, 5)
+MultiPointsListLayout.Parent = MultiPointsScroll
+
+MultiPointsListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    MultiPointsScroll.CanvasSize = UDim2.new(0, 0, 0, MultiPointsListLayout.AbsoluteContentSize.Y)
+end)
+
+-- Кнопка старта
+local StartMultiButton = Instance.new("TextButton")
+StartMultiButton.Name = "StartMultiButton"
+StartMultiButton.Size = UDim2.new(1, -20, 0, 40)
+StartMultiButton.Position = UDim2.new(0, 10, 1, -50)
+StartMultiButton.BackgroundColor3 = Color3.fromRGB(60, 120, 60)
+StartMultiButton.BorderSizePixel = 0
+StartMultiButton.Text = "Start Teleport"
+StartMultiButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+StartMultiButton.TextSize = 14
+StartMultiButton.Font = Enum.Font.GothamBold
+StartMultiButton.Parent = MultiContent
+
+local StartMultiCorner = Instance.new("UICorner")
+StartMultiCorner.CornerRadius = UDim.new(0, 6)
+StartMultiCorner.Parent = StartMultiButton
+
+-- ================= ДАННЫЕ =================
+local Positions = {}
+local Waypoints = {}
+
+-- ================= ФУНКЦИИ СОХРАНЕНИЯ =================
+local function saveData()
+    local data = {
+        mainPos = {MainFrame.Position.X.Scale, MainFrame.Position.X.Offset, MainFrame.Position.Y.Scale, MainFrame.Position.Y.Offset},
+        mainSize = {MainFrame.Size.X.Scale, MainFrame.Size.X.Offset, MainFrame.Size.Y.Scale, MainFrame.Size.Y.Offset},
+        multiPos = {MultiFrame.Position.X.Scale, MultiFrame.Position.X.Offset, MultiFrame.Position.Y.Scale, MultiFrame.Position.Y.Offset},
+        multiSize = {MultiFrame.Size.X.Scale, MultiFrame.Size.X.Offset, MultiFrame.Size.Y.Scale, MultiFrame.Size.Y.Offset},
+        positions = Positions,
+        waypoints = Waypoints,
+        loop = loopEnabled,
+        shuffle = shuffleEnabled,
+        defaultDelay = DefaultDelayBox.Text
+    }
+    saveDataToFile(data)
+end
+
+local function loadData()
+    local data = loadDataFromFile()
+    if not data then return end
     
-    if success and result then
-        local success2, data = pcall(function()
-            return HttpService:JSONDecode(result)
-        end)
-        
-        if success2 and data then
-            -- Восстанавливаем позицию и размер UI
-            if data.uiPosition then
-                MainFrame.Position = UDim2.new(data.uiPosition[1], data.uiPosition[2], data.uiPosition[3], data.uiPosition[4])
-            end
-            
-            if data.uiSize then
-                MainFrame.Size = UDim2.new(data.uiSize[1], data.uiSize[2], data.uiSize[3], data.uiSize[4])
-            end
-            
-            -- Восстанавливаем позиции
-            if data.positions then
-                Positions = data.positions
-                for _, positionData in ipairs(Positions) do
-                    CreatePositionEntry(positionData)
-                end
-            end
-            
-            return true
+    if data.mainPos then
+        MainFrame.Position = UDim2.new(data.mainPos[1], data.mainPos[2], data.mainPos[3], data.mainPos[4])
+    end
+    if data.mainSize then
+        MainFrame.Size = UDim2.new(data.mainSize[1], data.mainSize[2], data.mainSize[3], data.mainSize[4])
+    end
+    if data.multiPos then
+        MultiFrame.Position = UDim2.new(data.multiPos[1], data.multiPos[2], data.multiPos[3], data.multiPos[4])
+    end
+    if data.multiSize then
+        MultiFrame.Size = UDim2.new(data.multiSize[1], data.multiSize[2], data.multiSize[3], data.multiSize[4])
+    end
+    if data.positions then
+        Positions = data.positions
+        for _, pos in ipairs(Positions) do
+            createPositionEntry(pos, PositionsListLayout, false)
         end
     end
-    return false
+    if data.waypoints then
+        Waypoints = data.waypoints
+        for _, wp in ipairs(Waypoints) do
+            createPositionEntry(wp, MultiPointsListLayout, true)
+        end
+    end
+    if data.loop ~= nil then
+        loopEnabled = data.loop
+        LoopCheckbox.Text = loopEnabled and "✓" or ""
+    end
+    if data.shuffle ~= nil then
+        shuffleEnabled = data.shuffle
+        ShuffleCheckbox.Text = shuffleEnabled and "✓" or ""
+    end
+    if data.defaultDelay then
+        DefaultDelayBox.Text = data.defaultDelay
+    end
 end
 
--- Функция для создания анимированного эффекта градиента
-local function SetupButtonHoverEffect(button, gradient, stroke)
-    local hoverTweenIn = TweenService:Create(gradient, TweenInfo.new(0.2), {Enabled = true})
-    local hoverTweenOut = TweenService:Create(gradient, TweenInfo.new(0.2), {Enabled = false})
-    local strokeTweenIn = TweenService:Create(stroke, TweenInfo.new(0.2), {Thickness = 2})
-    local strokeTweenOut = TweenService:Create(stroke, TweenInfo.new(0.2), {Thickness = 0})
+-- ================= ОБЩИЕ ФУНКЦИИ =================
+local function setupButtonHoverEffect(button, gradient, stroke)
+    local hoverIn = TweenService:Create(gradient, TweenInfo.new(0.2), {Enabled = true})
+    local hoverOut = TweenService:Create(gradient, TweenInfo.new(0.2), {Enabled = false})
+    local strokeIn = TweenService:Create(stroke, TweenInfo.new(0.2), {Thickness = 2})
+    local strokeOut = TweenService:Create(stroke, TweenInfo.new(0.2), {Thickness = 0})
     
     button.MouseEnter:Connect(function()
-        hoverTweenIn:Play()
-        strokeTweenIn:Play()
+        hoverIn:Play()
+        strokeIn:Play()
     end)
-    
     button.MouseLeave:Connect(function()
-        hoverTweenOut:Play()
-        strokeTweenOut:Play()
+        hoverOut:Play()
+        strokeOut:Play()
     end)
 end
 
--- Функции
-local function CreatePositionEntry(positionData)
-    local EntryFrame = Instance.new("Frame")
-    EntryFrame.Name = "EntryFrame"
-    EntryFrame.Size = UDim2.new(1, 0, 0, 60)
-    EntryFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    EntryFrame.BorderSizePixel = 0
+-- Функция создания элемента в списке
+local function createPositionEntry(data, listLayout, isWaypoint)
+    local container = listLayout.Parent
+    local entry = Instance.new("Frame")
+    entry.Name = "EntryFrame"
+    entry.Size = UDim2.new(1, 0, 0, 60)
+    entry.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    entry.BorderSizePixel = 0
     
-    local EntryCorner = Instance.new("UICorner")
-    EntryCorner.CornerRadius = UDim.new(0, 6)
-    EntryCorner.Parent = EntryFrame
+    local entryCorner = Instance.new("UICorner")
+    entryCorner.CornerRadius = UDim.new(0, 6)
+    entryCorner.Parent = entry
     
-    local NameLabel = Instance.new("TextLabel")
-    NameLabel.Name = "NameLabel"
-    NameLabel.Size = UDim2.new(0.7, -5, 0, 25)
-    NameLabel.Position = UDim2.new(0, 5, 0, 5)
-    NameLabel.BackgroundTransparency = 1
-    NameLabel.Text = positionData.Name
-    NameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    NameLabel.TextSize = 12
-    NameLabel.TextXAlignment = Enum.TextXAlignment.Left
-    NameLabel.Parent = EntryFrame
+    -- Название
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Name = "NameLabel"
+    nameLabel.Size = UDim2.new(0.7, -5, 0, 25)
+    nameLabel.Position = UDim2.new(0, 5, 0, 5)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = data.Name
+    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLabel.TextSize = 12
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    nameLabel.Parent = entry
     
-    local NameBox = Instance.new("TextBox")
-    NameBox.Name = "NameBox"
-    NameBox.Size = UDim2.new(0.7, -5, 0, 25)
-    NameBox.Position = UDim2.new(0, 5, 0, 5)
-    NameBox.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-    NameBox.BorderSizePixel = 0
-    NameBox.Text = positionData.Name
-    NameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-    NameBox.TextSize = 12
-    NameBox.Visible = false
-    NameBox.Parent = EntryFrame
+    -- Поле редактирования названия
+    local nameBox = Instance.new("TextBox")
+    nameBox.Name = "NameBox"
+    nameBox.Size = UDim2.new(0.7, -5, 0, 25)
+    nameBox.Position = UDim2.new(0, 5, 0, 5)
+    nameBox.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    nameBox.BorderSizePixel = 0
+    nameBox.Text = data.Name
+    nameBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameBox.TextSize = 12
+    nameBox.Visible = false
+    nameBox.Parent = entry
     
-    local NameBoxCorner = Instance.new("UICorner")
-    NameBoxCorner.CornerRadius = UDim.new(0, 4)
-    NameBoxCorner.Parent = NameBox
+    if not nameBox:FindFirstChildOfClass("UICorner") then
+        local nameBoxCorner = Instance.new("UICorner")
+        nameBoxCorner.CornerRadius = UDim.new(0, 4)
+        nameBoxCorner.Parent = nameBox
+    end
     
-    local CoordsLabel = Instance.new("TextLabel")
-    CoordsLabel.Name = "CoordsLabel"
-    CoordsLabel.Size = UDim2.new(0.7, -5, 0, 25)
-    CoordsLabel.Position = UDim2.new(0, 5, 0, 30)
-    CoordsLabel.BackgroundTransparency = 1
-    CoordsLabel.Text = string.format("X: %.1f, Y: %.1f, Z: %.1f", positionData.Position.X, positionData.Position.Y, positionData.Position.Z)
-    CoordsLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    CoordsLabel.TextSize = 10
-    CoordsLabel.TextXAlignment = Enum.TextXAlignment.Left
-    CoordsLabel.Parent = EntryFrame
+    -- Координаты (обычный режим)
+    local coordsLabel = Instance.new("TextLabel")
+    coordsLabel.Name = "CoordsLabel"
+    coordsLabel.Size = UDim2.new(0.7, -5, 0, 25)
+    coordsLabel.Position = UDim2.new(0, 5, 0, 30)
+    coordsLabel.BackgroundTransparency = 1
+    coordsLabel.Text = string.format("X: %.1f, Y: %.1f, Z: %.1f", data.Position.X, data.Position.Y, data.Position.Z)
+    coordsLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    coordsLabel.TextSize = 10
+    coordsLabel.TextXAlignment = Enum.TextXAlignment.Left
+    coordsLabel.Parent = entry
     
-    local TeleportButton = Instance.new("TextButton")
-    TeleportButton.Name = "TeleportButton"
-    TeleportButton.Size = UDim2.new(0.3, -5, 0, 25)
-    TeleportButton.Position = UDim2.new(0.7, 5, 0, 5)
-    TeleportButton.BackgroundColor3 = Color3.fromRGB(70, 120, 70)
-    TeleportButton.BorderSizePixel = 0
-    TeleportButton.Text = "Teleport"
-    TeleportButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    TeleportButton.TextSize = 10
-    TeleportButton.Parent = EntryFrame
+    -- Поля редактирования координат
+    local xEdit = Instance.new("TextBox")
+    xEdit.Name = "XEdit"
+    xEdit.Size = UDim2.new(0.7, -5, 0, 20)
+    xEdit.Position = UDim2.new(0, 5, 0, 30)
+    xEdit.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    xEdit.BorderSizePixel = 0
+    xEdit.PlaceholderText = "X"
+    xEdit.Text = tostring(data.Position.X)
+    xEdit.TextColor3 = Color3.fromRGB(255, 255, 255)
+    xEdit.TextSize = 10
+    xEdit.Visible = false
+    xEdit.Parent = entry
     
-    local TeleportCorner = Instance.new("UICorner")
-    TeleportCorner.CornerRadius = UDim.new(0, 4)
-    TeleportCorner.Parent = TeleportButton
+    if not xEdit:FindFirstChildOfClass("UICorner") then
+        local xEditCorner = Instance.new("UICorner")
+        xEditCorner.CornerRadius = UDim.new(0, 4)
+        xEditCorner.Parent = xEdit
+    end
     
-    local TeleportGradient = Instance.new("UIGradient")
-    TeleportGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 200, 200))
-    })
-    TeleportGradient.Enabled = false
-    TeleportGradient.Parent = TeleportButton
+    local yEdit = Instance.new("TextBox")
+    yEdit.Name = "YEdit"
+    yEdit.Size = UDim2.new(0.7, -5, 0, 20)
+    yEdit.Position = UDim2.new(0, 5, 0, 52)
+    yEdit.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    yEdit.BorderSizePixel = 0
+    yEdit.PlaceholderText = "Y"
+    yEdit.Text = tostring(data.Position.Y)
+    yEdit.TextColor3 = Color3.fromRGB(255, 255, 255)
+    yEdit.TextSize = 10
+    yEdit.Visible = false
+    yEdit.Parent = entry
     
-    local TeleportStroke = Instance.new("UIStroke")
-    TeleportStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    TeleportStroke.Color = Color3.fromRGB(100, 200, 100)
-    TeleportStroke.Thickness = 0
-    TeleportStroke.Parent = TeleportButton
+    if not yEdit:FindFirstChildOfClass("UICorner") then
+        local yEditCorner = Instance.new("UICorner")
+        yEditCorner.CornerRadius = UDim.new(0, 4)
+        yEditCorner.Parent = yEdit
+    end
     
-    local EditButton = Instance.new("TextButton")
-    EditButton.Name = "EditButton"
-    EditButton.Size = UDim2.new(0.3, -5, 0, 25)
-    EditButton.Position = UDim2.new(0.7, 5, 0, 32)
-    EditButton.BackgroundColor3 = Color3.fromRGB(120, 100, 70)
-    EditButton.BorderSizePixel = 0
-    EditButton.Text = "Edit"
-    EditButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    EditButton.TextSize = 10
-    EditButton.Parent = EntryFrame
+    local zEdit = Instance.new("TextBox")
+    zEdit.Name = "ZEdit"
+    zEdit.Size = UDim2.new(0.7, -5, 0, 20)
+    zEdit.Position = UDim2.new(0, 5, 0, 74)
+    zEdit.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    zEdit.BorderSizePixel = 0
+    zEdit.PlaceholderText = "Z"
+    zEdit.Text = tostring(data.Position.Z)
+    zEdit.TextColor3 = Color3.fromRGB(255, 255, 255)
+    zEdit.TextSize = 10
+    zEdit.Visible = false
+    zEdit.Parent = entry
     
-    local EditCorner = Instance.new("UICorner")
-    EditCorner.CornerRadius = UDim.new(0, 4)
-    EditCorner.Parent = EditButton
+    if not zEdit:FindFirstChildOfClass("UICorner") then
+        local zEditCorner = Instance.new("UICorner")
+        zEditCorner.CornerRadius = UDim.new(0, 4)
+        zEditCorner.Parent = zEdit
+    end
     
-    local EditGradient = Instance.new("UIGradient")
-    EditGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 200, 200))
-    })
-    EditGradient.Enabled = false
-    EditGradient.Parent = EditButton
+    -- Поле задержки (для waypoint)
+    local delayBox = nil
+    if isWaypoint then
+        delayBox = Instance.new("TextBox")
+        delayBox.Name = "DelayBox"
+        delayBox.Size = UDim2.new(0.7, -5, 0, 20)
+        delayBox.Position = UDim2.new(0, 5, 0, 96)
+        delayBox.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        delayBox.BorderSizePixel = 0
+        delayBox.PlaceholderText = "Delay (s)"
+        delayBox.Text = tostring(data.Delay or 1)
+        delayBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+        delayBox.TextSize = 10
+        delayBox.Visible = false
+        delayBox.Parent = entry
+        
+        if not delayBox:FindFirstChildOfClass("UICorner") then
+            local delayBoxCorner = Instance.new("UICorner")
+            delayBoxCorner.CornerRadius = UDim.new(0, 4)
+            delayBoxCorner.Parent = delayBox
+        end
+    end
     
-    local EditStroke = Instance.new("UIStroke")
-    EditStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    EditStroke.Color = Color3.fromRGB(180, 150, 100)
-    EditStroke.Thickness = 0
-    EditStroke.Parent = EditButton
+    -- Кнопки действий
+    local teleportBtn = Instance.new("TextButton")
+    teleportBtn.Name = "TeleportBtn"
+    teleportBtn.Size = UDim2.new(0.3, -5, 0, 25)
+    teleportBtn.Position = UDim2.new(0.7, 5, 0, 5)
+    teleportBtn.BackgroundColor3 = Color3.fromRGB(70, 120, 70)
+    teleportBtn.BorderSizePixel = 0
+    teleportBtn.Text = "Teleport"
+    teleportBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    teleportBtn.TextSize = 10
+    teleportBtn.Parent = entry
     
-    local DeleteButton = Instance.new("TextButton")
-    DeleteButton.Name = "DeleteButton"
-    DeleteButton.Size = UDim2.new(0.3, -5, 0, 25)
-    DeleteButton.Position = UDim2.new(0.7, 5, 0, 5) -- Та же позиция, что и TeleportButton
-    DeleteButton.BackgroundColor3 = Color3.fromRGB(120, 70, 70)
-    DeleteButton.BorderSizePixel = 0
-    DeleteButton.Text = "Delete"
-    DeleteButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    DeleteButton.TextSize = 10
-    DeleteButton.Visible = false
-    DeleteButton.Parent = EntryFrame
+    if not teleportBtn:FindFirstChildOfClass("UICorner") then
+        local teleportBtnCorner = Instance.new("UICorner")
+        teleportBtnCorner.CornerRadius = UDim.new(0, 4)
+        teleportBtnCorner.Parent = teleportBtn
+    end
     
-    local DeleteCorner = Instance.new("UICorner")
-    DeleteCorner.CornerRadius = UDim.new(0, 4)
-    DeleteCorner.Parent = DeleteButton
+    local teleportGrad = Instance.new("UIGradient", teleportBtn)
+    teleportGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.new(1,1,1)), ColorSequenceKeypoint.new(1, Color3.new(0.8,0.8,0.8))})
+    teleportGrad.Enabled = false
+    local teleportStroke = Instance.new("UIStroke", teleportBtn)
+    teleportStroke.Color = Color3.fromRGB(100,200,100)
+    teleportStroke.Thickness = 0
     
-    local DeleteGradient = Instance.new("UIGradient")
-    DeleteGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 200, 200))
-    })
-    DeleteGradient.Enabled = false
-    DeleteGradient.Parent = DeleteButton
+    local editBtn = Instance.new("TextButton")
+    editBtn.Name = "EditBtn"
+    editBtn.Size = UDim2.new(0.3, -5, 0, 25)
+    editBtn.Position = UDim2.new(0.7, 5, 0, 32)
+    editBtn.BackgroundColor3 = Color3.fromRGB(120, 100, 70)
+    editBtn.BorderSizePixel = 0
+    editBtn.Text = "Edit"
+    editBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    editBtn.TextSize = 10
+    editBtn.Parent = entry
     
-    local DeleteStroke = Instance.new("UIStroke")
-    DeleteStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    DeleteStroke.Color = Color3.fromRGB(200, 100, 100)
-    DeleteStroke.Thickness = 0
-    DeleteStroke.Parent = DeleteButton
+    if not editBtn:FindFirstChildOfClass("UICorner") then
+        local editBtnCorner = Instance.new("UICorner")
+        editBtnCorner.CornerRadius = UDim.new(0, 4)
+        editBtnCorner.Parent = editBtn
+    end
     
-    -- Настройка эффектов наведения
-    SetupButtonHoverEffect(TeleportButton, TeleportGradient, TeleportStroke)
-    SetupButtonHoverEffect(EditButton, EditGradient, EditStroke)
-    SetupButtonHoverEffect(DeleteButton, DeleteGradient, DeleteStroke)
+    local editGrad = Instance.new("UIGradient", editBtn)
+    editGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.new(1,1,1)), ColorSequenceKeypoint.new(1, Color3.new(0.8,0.8,0.8))})
+    editGrad.Enabled = false
+    local editStroke = Instance.new("UIStroke", editBtn)
+    editStroke.Color = Color3.fromRGB(180,150,100)
+    editStroke.Thickness = 0
     
-    -- Функционал кнопок
-    TeleportButton.MouseButton1Click:Connect(function()
-        local character = Player.Character
-        if character and character:FindFirstChild("HumanoidRootPart") then
-            character.HumanoidRootPart.CFrame = CFrame.new(positionData.Position)
+    local deleteBtn = Instance.new("TextButton")
+    deleteBtn.Name = "DeleteBtn"
+    deleteBtn.Size = UDim2.new(0.3, -5, 0, 25)
+    deleteBtn.Position = UDim2.new(0.7, 5, 0, 5)
+    deleteBtn.BackgroundColor3 = Color3.fromRGB(120, 70, 70)
+    deleteBtn.BorderSizePixel = 0
+    deleteBtn.Text = "Delete"
+    deleteBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    deleteBtn.TextSize = 10
+    deleteBtn.Visible = false
+    deleteBtn.Parent = entry
+    
+    if not deleteBtn:FindFirstChildOfClass("UICorner") then
+        local deleteBtnCorner = Instance.new("UICorner")
+        deleteBtnCorner.CornerRadius = UDim.new(0, 4)
+        deleteBtnCorner.Parent = deleteBtn
+    end
+    
+    local deleteGrad = Instance.new("UIGradient", deleteBtn)
+    deleteGrad.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.new(1,1,1)), ColorSequenceKeypoint.new(1, Color3.new(0.8,0.8,0.8))})
+    deleteGrad.Enabled = false
+    local deleteStroke = Instance.new("UIStroke", deleteBtn)
+    deleteStroke.Color = Color3.fromRGB(200,100,100)
+    deleteStroke.Thickness = 0
+    
+    setupButtonHoverEffect(teleportBtn, teleportGrad, teleportStroke)
+    setupButtonHoverEffect(editBtn, editGrad, editStroke)
+    setupButtonHoverEffect(deleteBtn, deleteGrad, deleteStroke)
+    
+    -- Логика кнопок
+    teleportBtn.MouseButton1Click:Connect(function()
+        local char = Player.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.CFrame = CFrame.new(data.Position)
         end
     end)
     
     local editing = false
-    EditButton.MouseButton1Click:Connect(function()
+    editBtn.MouseButton1Click:Connect(function()
         editing = not editing
-        NameLabel.Visible = not editing
-        NameBox.Visible = editing
-        DeleteButton.Visible = editing
-        TeleportButton.Visible = not editing -- Скрываем кнопку телепортации при редактировании
-        EditButton.Text = editing and "Save" or "Edit"
+        -- Переключаем видимость
+        nameLabel.Visible = not editing
+        coordsLabel.Visible = not editing
+        nameBox.Visible = editing
+        xEdit.Visible = editing
+        yEdit.Visible = editing
+        zEdit.Visible = editing
+        if delayBox then delayBox.Visible = editing end
+        teleportBtn.Visible = not editing
+        deleteBtn.Visible = editing
+        editBtn.Text = editing and "Save" or "Edit"
         
         if editing then
-            NameBox:CaptureFocus()
+            entry.Size = UDim2.new(1, 0, 0, delayBox and 120 or 100)
+            nameBox:CaptureFocus()
         else
-            positionData.Name = NameBox.Text
-            NameLabel.Text = NameBox.Text
-            SavePositions()
+            data.Name = nameBox.Text
+            local newX = tonumber(xEdit.Text) or data.Position.X
+            local newY = tonumber(yEdit.Text) or data.Position.Y
+            local newZ = tonumber(zEdit.Text) or data.Position.Z
+            data.Position = Vector3.new(newX, newY, newZ)
+            if delayBox then
+                data.Delay = tonumber(delayBox.Text) or 1
+            end
+            nameLabel.Text = data.Name
+            coordsLabel.Text = string.format("X: %.1f, Y: %.1f, Z: %.1f", data.Position.X, data.Position.Y, data.Position.Z)
+            entry.Size = UDim2.new(1, 0, 0, 60)
+            saveData()
         end
     end)
     
-    DeleteButton.MouseButton1Click:Connect(function()
-        for i, pos in ipairs(Positions) do
-            if pos == positionData then
-                table.remove(Positions, i)
-                break
+    deleteBtn.MouseButton1Click:Connect(function()
+        if isWaypoint then
+            for i, wp in ipairs(Waypoints) do
+                if wp == data then
+                    table.remove(Waypoints, i)
+                    break
+                end
+            end
+        else
+            for i, pos in ipairs(Positions) do
+                if pos == data then
+                    table.remove(Positions, i)
+                    break
+                end
             end
         end
-        EntryFrame:Destroy()
-        SavePositions()
+        entry:Destroy()
+        saveData()
     end)
     
-    EntryFrame.Parent = PositionsScroll
-    return EntryFrame
+    entry.Parent = container
+    return entry
 end
 
-local function SavePositions()
-    SaveData()
-    print("Positions saved:", #Positions)
-end
-
-local function LoadPositions()
-    if LoadData() then
-        print("Positions loaded from save")
-    else
-        print("No saved positions found")
-    end
-end
-
--- Обработчики событий
+-- ================= ОБРАБОТЧИКИ =================
 SaveButton.MouseButton1Click:Connect(function()
-    local character = Player.Character
-    if character and character:FindFirstChild("HumanoidRootPart") then
-        local positionName = PositionNameBox.Text
-        if positionName == "" then
-            positionName = "Position " .. (#Positions + 1)
-        end
-        
-        local positionData = {
-            Name = positionName,
-            Position = character.HumanoidRootPart.Position
+    local char = Player.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        local name = PositionNameBox.Text
+        if name == "" then name = "Position " .. (#Positions + 1) end
+        local posData = {
+            Name = name,
+            Position = char.HumanoidRootPart.Position
         }
-        
-        table.insert(Positions, positionData)
-        CreatePositionEntry(positionData)
+        table.insert(Positions, posData)
+        createPositionEntry(posData, PositionsListLayout, false)
         PositionNameBox.Text = ""
-        SavePositions()
+        saveData()
     end
 end)
 
@@ -649,158 +1204,300 @@ AddManualButton.MouseButton1Click:Connect(function()
     local x = tonumber(XBox.Text) or 0
     local y = tonumber(YBox.Text) or 0
     local z = tonumber(ZBox.Text) or 0
-    local positionName = ManualNameBox.Text
-    
-    if positionName == "" then
-        positionName = "Manual " .. (#Positions + 1)
-    end
-    
-    local positionData = {
-        Name = positionName,
+    local name = ManualNameBox.Text
+    if name == "" then name = "Manual " .. (#Positions + 1) end
+    local posData = {
+        Name = name,
         Position = Vector3.new(x, y, z)
     }
-    
-    table.insert(Positions, positionData)
-    CreatePositionEntry(positionData)
-    XBox.Text = ""
-    YBox.Text = ""
-    ZBox.Text = ""
-    ManualNameBox.Text = ""
-    SavePositions()
+    table.insert(Positions, posData)
+    createPositionEntry(posData, PositionsListLayout, false)
+    XBox.Text = ""; YBox.Text = ""; ZBox.Text = ""; ManualNameBox.Text = ""
+    saveData()
 end)
 
--- Настройка эффектов наведения для основных кнопок
-SetupButtonHoverEffect(SaveButton, SaveButtonGradient, SaveButtonStroke)
-SetupButtonHoverEffect(AddManualButton, AddManualGradient, AddManualStroke)
+MultiSaveButton.MouseButton1Click:Connect(function()
+    local char = Player.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        local name = MultiPosNameBox.Text
+        if name == "" then name = "Waypoint " .. (#Waypoints + 1) end
+        local wp = {
+            Name = name,
+            Position = char.HumanoidRootPart.Position,
+            Delay = tonumber(DefaultDelayBox.Text) or 1
+        }
+        table.insert(Waypoints, wp)
+        createPositionEntry(wp, MultiPointsListLayout, true)
+        MultiPosNameBox.Text = ""
+        saveData()
+    end
+end)
 
--- Функционал перемещения окна
-local dragging = false
-local dragInput
-local dragStart
-local startPos
+MultiAddManualButton.MouseButton1Click:Connect(function()
+    local x = tonumber(MultiXBox.Text) or 0
+    local y = tonumber(MultiYBox.Text) or 0
+    local z = tonumber(MultiZBox.Text) or 0
+    local name = MultiManualNameBox.Text
+    if name == "" then name = "Waypoint " .. (#Waypoints + 1) end
+    local wp = {
+        Name = name,
+        Position = Vector3.new(x, y, z),
+        Delay = tonumber(DefaultDelayBox.Text) or 1
+    }
+    table.insert(Waypoints, wp)
+    createPositionEntry(wp, MultiPointsListLayout, true)
+    MultiXBox.Text = ""; MultiYBox.Text = ""; MultiZBox.Text = ""; MultiManualNameBox.Text = ""
+    saveData()
+end)
 
-local function update(input)
-    local delta = input.Position - dragStart
-    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+-- Телепортация по маршруту
+local teleporting = false
+local teleportConnection = nil
+
+local function stopTeleport()
+    teleporting = false
+    if teleportConnection then
+        teleportConnection:Disconnect()
+        teleportConnection = nil
+    end
+    StartMultiButton.Text = "Start Teleport"
+    StartMultiButton.BackgroundColor3 = Color3.fromRGB(60, 120, 60)
 end
 
-TitleBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = MainFrame.Position
-        
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-                SaveData() -- Сохраняем позицию при завершении перемещения
+StartMultiButton.MouseButton1Click:Connect(function()
+    if teleporting then
+        stopTeleport()
+        return
+    end
+    if #Waypoints == 0 then return end
+    
+    teleporting = true
+    StartMultiButton.Text = "Stop"
+    StartMultiButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    
+    local route = {}
+    for _, wp in ipairs(Waypoints) do
+        table.insert(route, wp)
+    end
+    
+    if shuffleEnabled then
+        for i = #route, 2, -1 do
+            local j = math.random(i)
+            route[i], route[j] = route[j], route[i]
+        end
+    end
+    
+    local index = 1
+    local function nextPoint()
+        if not teleporting then return end
+        if index > #route then
+            if loopEnabled then
+                index = 1
+            else
+                stopTeleport()
+                return
             end
-        end)
+        end
+        
+        local wp = route[index]
+        local char = Player.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.CFrame = CFrame.new(wp.Position)
+        end
+        
+        index = index + 1
+        if teleporting then
+            local delay = wp.Delay or 1
+            teleportConnection = RunService.Heartbeat:Connect(function()
+                teleportConnection:Disconnect()
+                task.wait(delay)
+                nextPoint()
+            end)
+        end
     end
+    
+    nextPoint()
 end)
 
-TitleBar.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        dragInput = input
+-- Открытие/закрытие мульти-окна с умным позиционированием
+local multiVisible = false
+local function positionMultiFrame()
+    MultiFrame.Visible = true
+    task.wait()
+    local mainAbsPos = MainFrame.AbsolutePosition
+    local mainAbsSize = MainFrame.AbsoluteSize
+    local viewport = Camera.ViewportSize
+    local rightSpace = viewport.X - (mainAbsPos.X + mainAbsSize.X)
+    local leftSpace = mainAbsPos.X
+    local multiWidth = MultiFrame.AbsoluteSize.X
+    
+    if rightSpace >= multiWidth + 10 or rightSpace > leftSpace then
+        MultiFrame.Position = UDim2.new(0, mainAbsPos.X + mainAbsSize.X + 10, 0, mainAbsPos.Y)
+    else
+        MultiFrame.Position = UDim2.new(0, mainAbsPos.X - multiWidth - 10, 0, mainAbsPos.Y)
     end
+    saveData()
+end
+
+MultiButton.MouseButton1Click:Connect(function()
+    multiVisible = not multiVisible
+    if multiVisible then
+        positionMultiFrame()
+        MultiButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        MultiButton.Text = "-"
+    else
+        MultiFrame.Visible = false
+        MultiButton.BackgroundColor3 = Color3.fromRGB(60, 120, 60)
+        MultiButton.Text = "+"
+    end
+    saveData()
 end)
 
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        update(input)
-    end
+MultiCloseButton.MouseButton1Click:Connect(function()
+    multiVisible = false
+    MultiFrame.Visible = false
+    MultiButton.BackgroundColor3 = Color3.fromRGB(60, 120, 60)
+    MultiButton.Text = "+"
+    saveData()
 end)
 
--- Функционал растягивания окна
-local resizing = false
-local resizeInput
-local resizeStart
-local startSize
-local resizeType
-
-for name, handle in pairs(resizeHandles) do
-    handle.InputBegan:Connect(function(input)
+-- Перемещение окон
+local function makeDraggable(frame, bar)
+    local dragging = false
+    local dragInput, dragStart, startPos
+    local function update(input)
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+    bar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            resizing = true
-            resizeStart = input.Position
-            startSize = MainFrame.Size
-            startPos = MainFrame.Position
-            resizeType = name
-            
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
-                    resizing = false
-                    SaveData() -- Сохраняем размер при завершении растягивания
+                    dragging = false
+                    saveData()
                 end
             end)
         end
     end)
-    
-    handle.InputChanged:Connect(function(input)
+    bar.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement then
-            resizeInput = input
+            dragInput = input
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
         end
     end)
 end
 
-UserInputService.InputChanged:Connect(function(input)
-    if resizing and input == resizeInput then
-        local delta = input.Position - resizeStart
-        local newSize = UDim2.new(startSize.X.Scale, startSize.X.Offset, startSize.Y.Scale, startSize.Y.Offset)
-        local newPosition = UDim2.new(startPos.X.Scale, startPos.X.Offset, startPos.Y.Scale, startPos.Y.Offset)
-        
-        if resizeType:find("Left") then
-            local newWidth = math.max(250, startSize.X.Offset - delta.X)
-            newSize = UDim2.new(0, newWidth, newSize.Y.Scale, newSize.Y.Offset)
-            newPosition = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, newPosition.Y.Scale, newPosition.Y.Offset)
-        elseif resizeType:find("Right") then
-            local newWidth = math.max(250, startSize.X.Offset + delta.X)
-            newSize = UDim2.new(0, newWidth, newSize.Y.Scale, newSize.Y.Offset)
-        end
-        
-        if resizeType:find("Top") then
-            local newHeight = math.max(150, startSize.Y.Offset - delta.Y)
-            newSize = UDim2.new(newSize.X.Scale, newSize.X.Offset, 0, newHeight)
-            newPosition = UDim2.new(newPosition.X.Scale, newPosition.X.Offset, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        elseif resizeType:find("Bottom") then
-            local newHeight = math.max(150, startSize.Y.Offset + delta.Y)
-            newSize = UDim2.new(newSize.X.Scale, newSize.X.Offset, 0, newHeight)
-        end
-        
-        MainFrame.Size = newSize
-        MainFrame.Position = newPosition
-    end
-end)
+makeDraggable(MainFrame, TitleBar)
+makeDraggable(MultiFrame, MultiTitleBar)
 
--- Сворачивание/разворачивание
-local minimized = false
+-- Растягивание окон
+local function makeResizable(frame, handles, minSize)
+    local resizing = false
+    local resizeInput, resizeStart, startSize, startPos, resizeType
+    
+    for name, handle in pairs(handles) do
+        handle.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                resizing = true
+                resizeStart = input.Position
+                startSize = frame.Size
+                startPos = frame.Position
+                resizeType = name
+                
+                input.Changed:Connect(function()
+                    if input.UserInputState == Enum.UserInputState.End then
+                        resizing = false
+                        saveData()
+                    end
+                end)
+            end
+        end)
+        
+        handle.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement then
+                resizeInput = input
+            end
+        end)
+    end
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if resizing and input == resizeInput then
+            local delta = input.Position - resizeStart
+            local newSize = UDim2.new(startSize.X.Scale, startSize.X.Offset, startSize.Y.Scale, startSize.Y.Offset)
+            local newPos = UDim2.new(startPos.X.Scale, startPos.X.Offset, startPos.Y.Scale, startPos.Y.Offset)
+            
+            if resizeType:find("Left") then
+                local newW = math.max(minSize.X, startSize.X.Offset - delta.X)
+                newSize = UDim2.new(0, newW, 0, newSize.Y.Offset)
+                newPos = UDim2.new(0, startPos.X.Offset + delta.X, 0, newPos.Y.Offset)
+            elseif resizeType:find("Right") then
+                local newW = math.max(minSize.X, startSize.X.Offset + delta.X)
+                newSize = UDim2.new(0, newW, 0, newSize.Y.Offset)
+            end
+            
+            if resizeType:find("Bottom") then
+                local newH = math.max(minSize.Y, startSize.Y.Offset + delta.Y)
+                newSize = UDim2.new(0, newSize.X.Offset, 0, newH)
+            end
+            
+            frame.Size = newSize
+            frame.Position = newPos
+        end
+    end)
+end
+
+makeResizable(MainFrame, resizeHandles, Vector2.new(250, 150))
+makeResizable(MultiFrame, multiResizeHandles, Vector2.new(250, 300))
+
+-- Сворачивание окон
+local mainMinimized = false
+local mainPrevSize
 MinimizeButton.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    if minimized then
+    mainMinimized = not mainMinimized
+    if mainMinimized then
+        mainPrevSize = MainFrame.Size
         MainFrame.Size = UDim2.new(0, 300, 0, 30)
         MinimizeButton.Text = "+"
     else
-        MainFrame.Size = UDim2.new(0, 300, 0, 400)
+        MainFrame.Size = mainPrevSize or UDim2.new(0, 300, 0, 400)
         MinimizeButton.Text = "_"
     end
-    SaveData()
+    saveData()
+end)
+
+local multiMinimized = false
+local multiPrevSize
+MultiMinimizeButton.MouseButton1Click:Connect(function()
+    multiMinimized = not multiMinimized
+    if multiMinimized then
+        multiPrevSize = MultiFrame.Size
+        MultiFrame.Size = UDim2.new(0, 300, 0, 30)
+        MultiMinimizeButton.Text = "+"
+    else
+        MultiFrame.Size = multiPrevSize or UDim2.new(0, 300, 0, 500)
+        MultiMinimizeButton.Text = "_"
+    end
+    saveData()
 end)
 
 CloseButton.MouseButton1Click:Connect(function()
     ScreenGui:Destroy()
 end)
 
--- Автоматическое сохранение каждые 30 секунд
-local autoSaveConnection
-autoSaveConnection = RunService.Heartbeat:Connect(function()
-    wait(30)
-    SaveData()
+-- Автосохранение
+task.spawn(function()
+    while true do
+        task.wait(30)
+        saveData()
+    end
 end)
 
--- Загрузка сохраненных позиций при старте
-LoadPositions()
-
--- Обработка выхода из игры
-game:BindToClose(function()
-    SaveData()
-end)
+-- Загрузка данных
+loadData()
