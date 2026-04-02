@@ -1,0 +1,65 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "[ Cook Da Food ]",
+   LoadingTitle = "Cook Da Food Hub",
+   LoadingSubtitle = "By K7240",
+   ConfigurationSaving = {
+      Enabled = false
+   }
+})
+
+local Tab = Window:CreateTab("Enjoy!", 4483362458)
+
+local cashAmount = "67e67"
+
+local Input = Tab:CreateInput({
+   Name = "Cash Amount",
+   PlaceholderText = "67e67",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      cashAmount = Text
+   end,
+})
+
+Tab:CreateButton({
+   Name = "Get Cash",
+   Callback = function()
+      local amount = tonumber(cashAmount) or 67e67
+      local args = {
+         -amount,
+         "",
+         {
+            viewportFramePlacementOrientation = { Y = -30, X = 30, Z = 0 },
+            cookingTime = 5,
+            itemType = "RawFood",
+            sellingPrice = 50,
+            cookedFood = {
+               FriedEgg = {
+                  viewportFramePlacementPosition = { Y = -0.25, X = 0, Z = -3.5 },
+                  itemType = "CookedFood",
+                  sellingPrice = 1488,
+                  order = 1,
+                  name = "Fried Egg",
+                  viewportFramePlacementOrientation = { Y = -30, X = 30, Z = 0 },
+                  rarity = "Common"
+               }
+            },
+            viewportFramePlacementPosition = { Y = -0.75, X = 0, Z = -2.5 },
+            name = "Egg",
+            chance = 1488,
+            moneyprice = 1488,
+            rarity = "Common"
+         },
+         "Normal"
+      }
+      game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("BuyRawFoodsEvent"):FireServer(unpack(args))
+   end,
+})
+
+Tab:CreateButton({
+   Name = "Instant [E]",
+   Callback = function()
+      loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Instantly-interact-with-proximity-prompt-73901"))()
+   end,
+})
