@@ -22,6 +22,8 @@ local Input = Tab:CreateInput({
    end,
 })
 
+Tab:CreateSection('Tip: 1.8e308 = INF (Don't Try To Get -INF pls. Its A Bad Idea)')
+
 Tab:CreateButton({
    Name = "Get Cash",
    Callback = function()
