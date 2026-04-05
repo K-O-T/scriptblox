@@ -1,67 +1,249 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "[ Cook Da Food ]",
-   LoadingTitle = "Cook Da Food Hub",
-   LoadingSubtitle = "By K7240",
-   ConfigurationSaving = {
-      Enabled = false
-   }
+    Name = "Enjoy!",
+    LoadingTitle = "Rayfield Interface",
+    LoadingSubtitle = "by Developer",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "EnjoyScript",
+        FileName = "Config"
+    }
 })
 
-local Tab = Window:CreateTab("Enjoy!", 4483362458)
+-- Переменные для Main
+local cashAmount = 0
 
-local cashAmount = "67e67"
+-- Переменные для Fun
+local selectedFoodType = "Egg"
+local selectedQuality = "Normal"
+local sellingPrice = 150
+local customRarity = "Common"
+local applyRarity = false
+local customFoodName = "Egg"
+local applyName = false
 
-local Input = Tab:CreateInput({
-   Name = "Cash Amount",
-   PlaceholderText = "67e67",
-   RemoveTextAfterFocusLost = false,
-   Callback = function(Text)
-      cashAmount = Text
-   end,
+-- Таблица редкостей по умолчанию
+local rarityGroups = {
+    Common = {"Egg", "Bread", "Carrot", "Corn", "FishStick"},
+    Uncommon = {"Sausage", "Croissant", "ChocolateCroissant", "WaffleBatter", "MeatSkewer", "ChickenThigh"},
+    Rare = {"Tomato", "BellPepper", "Apple", "Bacon", "PorkMeat", "Beef", "Burger Bun"},
+    Epic = {"BagOfCocoaBeans", "Banana", "Potato", "CookieDought", "Cheese", "Mushroom", "DonutBase", "HotDogKit", "SquareSandwich", "TriangularSandwich"},
+    Legendary = {"BagOfEggs", "PizzaDough", "Chicken", "Spaghetti", "Tacos", "Burritos", "PancakeBatter", "Lasagna", "BagOfApples", "BagOfLemon", "BagOfStrawberries", "BigBurgerBun"},
+    Mythic = {"Salmon", "Pumpkin", "Crab", "Shrimp", "Sweetbreads", "CakeBase", "BigBeef"},
+    Secret = {"Snake", "GiantCrab", "Lobster", "Octopus", "Shark"}
+}
+
+-- Функция для получения редкости
+local function getRarity()
+    if applyRarity then return customRarity end
+    for rarity, list in pairs(rarityGroups) do
+        if table.find(list, selectedFoodType) then return rarity end
+    end
+    return "Common"
+end
+
+-- Функция для форматирования имени (разделение заглавных букв пробелами)
+local function formatName(str)
+    if applyName then return customFoodName end
+    return str:gsub("(%l)(%th)", "%1 %2")
+end
+
+-- Вкладка Main
+local MainTab = Window:CreateTab("Main")
+
+MainTab:CreateInput({
+    Name = "Cash Amount",
+    PlaceholderText = "Enter amount...",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text)
+        cashAmount = tonumber(Text) or 0
+    end,
 })
 
-Tab:CreateSection('Tip: 1.8e308 = INF (Don't Try To Get -INF pls. Its A Bad Idea)')
-
-Tab:CreateButton({
-   Name = "Get Cash",
-   Callback = function()
-      local amount = tonumber(cashAmount) or 67e67
-      local args = {
-         -amount,
-         "",
-         {
-            viewportFramePlacementOrientation = { Y = -30, X = 30, Z = 0 },
-            cookingTime = 5,
-            itemType = "RawFood",
-            sellingPrice = 50,
-            cookedFood = {
-               FriedEgg = {
-                  viewportFramePlacementPosition = { Y = -0.25, X = 0, Z = -3.5 },
-                  itemType = "CookedFood",
-                  sellingPrice = 1488,
-                  order = 1,
-                  name = "Fried Egg",
-                  viewportFramePlacementOrientation = { Y = -30, X = 30, Z = 0 },
-                  rarity = "Common"
-               }
+MainTab:CreateButton({
+    Name = "Get Cash",
+    Callback = function()
+        local args = {
+            -cashAmount,
+            "",
+            {
+                viewportFramePlacementOrientation = {Y = -30, X = 30, Z = 0},
+                cookingTime = 15,
+                itemType = "RawFood",
+                sellingPrice = 150,
+                cookedFood = {
+                    CookedFishStick = {
+                        viewportFramePlacementPosition = {Y = -0.5, X = 0, Z = -4},
+                        itemType = "CookedFood",
+                        sellingPrice = 600,
+                        order = 5,
+                        name = "Cooked Fish Stick",
+                        viewportFramePlacementOrientation = {Y = -30, X = 30, Z = 0},
+                        rarity = "Common"
+                    }
+                },
+                viewportFramePlacementPosition = {Y = -0.5, X = 0, Z = -4},
+                name = "Fish Stick",
+                chance = 50,
+                moneyprice = 300,
+                rarity = "Common"
             },
-            viewportFramePlacementPosition = { Y = -0.75, X = 0, Z = -2.5 },
-            name = "Egg",
-            chance = 1488,
-            moneyprice = 1488,
-            rarity = "Common"
-         },
-         "Normal"
-      }
-      game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("BuyRawFoodsEvent"):FireServer(unpack(args))
-   end,
+            "Normal"
+        }
+        game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("BuyRawFoodsEvent"):FireServer(unpack(args))
+    end,
 })
 
-Tab:CreateButton({
+-- Вкладка Fun
+local FunTab = Window:CreateTab("Fun")
+
+FunTab:CreateDropdown({
+    Name = "Food Type",
+    Options = {"Egg", "Bread", "Carrot", "Corn", "FishStick", "Sausage", "Croissant", "ChocolateCroissant", "WaffleBatter", "MeatSkewer", "ChickenThigh", "Tomato", "BellPepper", "Apple", "Bacon", "PorkMeat", "Beef", "Burger Bun", "BagOfCocoaBeans", "Banana", "Potato", "CookieDought", "Cheese", "Mushroom", "DonutBase", "HotDogKit", "SquareSandwich", "TriangularSandwich", "BagOfEggs", "PizzaDough", "Chicken", "Spaghetti", "Tacos", "Burritos", "PancakeBatter", "Lasagna", "BagOfApples", "BagOfLemon", "BagOfStrawberries", "BigBurgerBun", "Salmon", "Pumpkin", "Crab", "Shrimp", "Sweetbreads", "CakeBase", "BigBeef", "Snake", "GiantCrab", "Lobster", "Octopus", "Shark"},
+    CurrentOption = {"Egg"},
+    MultipleOptions = false,
+    Callback = function(Option)
+        selectedFoodType = Option[1]
+    end,
+})
+
+FunTab:CreateDropdown({
+    Name = "Quality",
+    Options = {"Normal", "Gold", "Diamond", "Radioactive"},
+    CurrentOption = {"Normal"},
+    MultipleOptions = false,
+    Callback = function(Option)
+        selectedQuality = Option[1]
+    end,
+})
+
+FunTab:CreateInput({
+    Name = "Selling Price",
+    PlaceholderText = "Number...",
+    Callback = function(Text)
+        sellingPrice = tonumber(Text) or 0
+    end,
+})
+
+FunTab:CreateToggle({
+    Name = "Apply Rarity",
+    CurrentValue = false,
+    Callback = function(Value)
+        applyRarity = Value
+    end,
+})
+
+FunTab:CreateInput({
+    Name = "Rarity",
+    PlaceholderText = "e.g. Secret",
+    Callback = function(Text)
+        customRarity = Text
+    end,
+})
+
+FunTab:CreateParagraph({Title = "Info:", Content = 'If you apply an unavailable rarity (e.g. "DEV"), the name and price will be visually set to "Burger".'})
+
+FunTab:CreateToggle({
+    Name = "Apply Name",
+    CurrentValue = false,
+    Callback = function(Value)
+        applyName = Value
+    end,
+})
+
+FunTab:CreateInput({
+    Name = "Food Name",
+    PlaceholderText = "Custom name...",
+    Callback = function(Text)
+        customFoodName = Text
+    end,
+})
+
+FunTab:CreateButton({
+    Name = "Get Food",
+    Callback = function()
+        local args = {
+            0,
+            selectedFoodType,
+            {
+                viewportFramePlacementOrientation = {Y = -30, X = 30, Z = 0},
+                cookingTime = 12,
+                itemType = "RawFood",
+                sellingPrice = sellingPrice,
+                cookedFood = {
+                    GrilledCorn = {
+                        viewportFramePlacementPosition = {Y = -0.5, X = 0, Z = -4},
+                        itemType = "CookedFood",
+                        sellingPrice = 500,
+                        order = 4,
+                        name = "Grilled Corn",
+                        viewportFramePlacementOrientation = {Y = -30, X = 30, Z = 0},
+                        rarity = "Common"
+                    }
+                },
+                viewportFramePlacementPosition = {Y = -2.5, X = 0, Z = -5.2},
+                name = formatName(selectedFoodType),
+                chance = 60,
+                moneyprice = 250,
+                rarity = getRarity()
+            },
+            selectedQuality
+        }
+        game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("BuyRawFoodsEvent"):FireServer(unpack(args))
+    end,
+})
+
+FunTab:CreateButton({
+    Name = "Get Food",
+    Callback = function()
+        local args = {
+            0,
+            selectedFoodType,
+            {
+                viewportFramePlacementOrientation = {Y = -30, X = 30, Z = 0},
+                cookingTime = 12,
+                itemType = "RawFood",
+                sellingPrice = sellingPrice,
+                cookedFood = {
+                    GrilledCorn = {
+                        viewportFramePlacementPosition = {Y = -0.5, X = 0, Z = -4},
+                        itemType = "CookedFood",
+                        sellingPrice = 500,
+                        order = 4,
+                        name = "Grilled Corn",
+                        viewportFramePlacementOrientation = {Y = -30, X = 30, Z = 0},
+                        rarity = "Common"
+                    }
+                },
+                viewportFramePlacementPosition = {Y = -2.5, X = 0, Z = -5.2},
+                name = formatName(selectedFoodType),
+                chance = 60,
+                moneyprice = 250,
+                rarity = getRarity()
+            },
+            selectedQuality
+        }
+        game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("BuyRawFoodsEvent"):FireServer(unpack(args))
+    end,
+})
+
+local U = Window:CreateTab("Universal")
+
+U:CreateSection("scriptblox.com - liamlmao")
+
+U:CreateButton({
    Name = "Instant [E]",
    Callback = function()
       loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Instantly-interact-with-proximity-prompt-73901"))()
+   end,
+})
+
+https://scriptblox.com/script/Universal-Script-Instantly-interact-with-proximity-prompt-73901
+
+U:CreateButton({
+   Name = "Copy Script Link",
+   Callback = function()
+      setclipboard("https://scriptblox.com/script/Universal-Script-Instantly-interact-with-proximity-prompt-73901")
    end,
 })
