@@ -2,10 +2,10 @@ local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
     Name = "Enjoy!",
-    LoadingTitle = "Rayfield Interface",
-    LoadingSubtitle = "by Developer",
+    LoadingTitle = "[ Bake Da Food ]",
+    LoadingSubtitle = "by K7240",
     ConfigurationSaving = {
-        Enabled = true,
+        Enabled = false,
         FolderName = "EnjoyScript",
         FileName = "Config"
     }
