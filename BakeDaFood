@@ -110,7 +110,7 @@ FunTab:CreateDropdown({
 
 FunTab:CreateDropdown({
     Name = "Quality",
-    Options = {"Normal", "Gold", "Diamond", "Radioactive"},
+    Options = {"Normal", "Gold", "Diamond", "Radioactive", "Lava"},
     CurrentOption = {"Normal"},
     MultipleOptions = false,
     Callback = function(Option)
@@ -157,40 +157,6 @@ FunTab:CreateInput({
     PlaceholderText = "Custom name...",
     Callback = function(Text)
         customFoodName = Text
-    end,
-})
-
-FunTab:CreateButton({
-    Name = "Get Food",
-    Callback = function()
-        local args = {
-            0,
-            selectedFoodType,
-            {
-                viewportFramePlacementOrientation = {Y = -30, X = 30, Z = 0},
-                cookingTime = 12,
-                itemType = "RawFood",
-                sellingPrice = sellingPrice,
-                cookedFood = {
-                    GrilledCorn = {
-                        viewportFramePlacementPosition = {Y = -0.5, X = 0, Z = -4},
-                        itemType = "CookedFood",
-                        sellingPrice = 500,
-                        order = 4,
-                        name = "Grilled Corn",
-                        viewportFramePlacementOrientation = {Y = -30, X = 30, Z = 0},
-                        rarity = "Common"
-                    }
-                },
-                viewportFramePlacementPosition = {Y = -2.5, X = 0, Z = -5.2},
-                name = formatName(selectedFoodType),
-                chance = 60,
-                moneyprice = 250,
-                rarity = getRarity()
-            },
-            selectedQuality
-        }
-        game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("BuyRawFoodsEvent"):FireServer(unpack(args))
     end,
 })
 
