@@ -1,0 +1,168 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local RunService = game:GetService("RunService")
+
+local Window = Rayfield:CreateWindow({
+   Name = "[ Be A Plant ]",
+   LoadingTitle = "By K7240",
+   LoadingSubtitle = "Loading...",
+   ConfigurationSaving = { Enabled = false, FolderName = "BeAPlantConfig", FileName = "MainConfig" }
+})
+
+local MainTab = Window:CreateTab("Enjoy!", "heart")
+
+local flags = {
+    fasterGrow = false,
+    growMultiplier = 1,
+    autoEscape = false,
+    autoRun = false,
+    freezeNpcs = false
+}
+
+local claimZoneCache = {}
+
+-- [ ФУНКЦИИ КОРРЕКТИРОВКИ ] --
+
+-- 5: Freeze NPCs с проверкой дистанции (10 studs)
+MainTab:CreateToggle({
+   Name = "Freeze NPCs",
+   CurrentValue = false,
+   Callback = function(Value)
+      flags.freezeNpcs = Value
+      task.spawn(function()
+         local pathStart = workspace:WaitForChild("World"):WaitForChild("Shared"):WaitForChild("Zones"):WaitForChild("PathStart"):FindFirstChild("Part")
+         
+         while flags.freezeNpcs do
+            local npcFolder = workspace:FindFirstChild("_ClientNPCs")
+            
+            if npcFolder and pathStart then
+               local npcs = npcFolder:GetChildren()
+               local farthestNpc = nil
+               local maxDistance = -1
+
+               -- 1. Находим самого дальнего NPC
+               for _, npc in ipairs(npcs) do
+                  if npc:IsA("Model") then
+                     local root = npc.PrimaryPart or npc:FindFirstChild("HumanoidRootPart")
+                     if root then
+                        local dist = (root.Position - pathStart.Position).Magnitude
+                        if dist > maxDistance then
+                           maxDistance = dist
+                           farthestNpc = npc
+                        end
+                     end
+                  end
+               end
+
+               -- 2. Применяем заморозку/разморозку
+               for _, npc in ipairs(npcs) do
+                  if npc:IsA("Model") then
+                     local root = npc.PrimaryPart or npc:FindFirstChild("HumanoidRootPart")
+                     if root then
+                        if npc == farthestNpc then
+                           root.Anchored = false -- Самый дальний двигается
+                        else
+                           root.Anchored = true  -- Остальные стоят
+                        end
+                     end
+                  end
+               end
+            end
+            task.wait(0.2) -- Частота обновления проверки
+         end
+
+         -- Разморозка всех при выключении Toggle
+         local npcFolder = workspace:FindFirstChild("_ClientNPCs")
+         if npcFolder then
+            for _, npc in ipairs(npcFolder:GetChildren()) do
+               local root = npc.PrimaryPart or npc:FindFirstChild("HumanoidRootPart")
+               if root then root.Anchored = false end
+            end
+         end
+      end)
+   end,
+})
+
+-- 6: Auto Run + Удержание "W" (Force Press)
+MainTab:CreateToggle({
+   Name = "Auto Run",
+   CurrentValue = false,
+   Callback = function(Value)
+      flags.autoRun = Value
+      if Value then
+         -- Цикл удержания клавиши (даже при потере фокуса окна)
+         task.spawn(function()
+            while flags.autoRun do
+               VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.W, false, game)
+               task.wait(0.1)
+            end
+            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.W, false, game)
+         end)
+         
+         -- Телепортация
+         task.spawn(function()
+            while flags.autoRun do
+               local target = workspace:WaitForChild("World"):WaitForChild("Shared"):WaitForChild("Zones"):WaitForChild("PathStart"):FindFirstChild("Part")
+               local hrp = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+               if target and hrp then
+                  hrp.CFrame = target.CFrame
+               end
+               task.wait(.75)
+            end
+         end)
+      end
+   end,
+})
+
+-- (Остальные функции 1, 2, 3 остаются без изменений)
+MainTab:CreateToggle({
+   Name = "Faster Grow",
+   CurrentValue = false,
+   Callback = function(Value)
+      flags.fasterGrow = Value
+      task.spawn(function()
+         while flags.fasterGrow do
+            for i = 1, flags.growMultiplier do
+                local args = {{{Function = "SpeedUpTap", Path = "PlantGrower", Args = {}}, "\002"}}
+                game:GetService("ReplicatedStorage"):WaitForChild("ffrostflame_bridgenet2@1.0.0"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+            end
+            task.wait()
+         end
+      end)
+   end,
+})
+
+MainTab:CreateSlider({
+   Name = "Faster Grow Speed Multi",
+   Range = {1, 8},
+   Increment = 1,
+   Suffix = "x",
+   CurrentValue = 1,
+   Callback = function(Value) flags.growMultiplier = Value end,
+})
+
+MainTab:CreateToggle({
+   Name = "Auto Escape",
+   CurrentValue = false,
+   Callback = function(Value)
+      flags.autoEscape = Value
+      task.spawn(function()
+         while flags.autoEscape do
+            local args = {{{Function = "PlantEscaped", Path = "PlantGrower", Args = {}}, "\002"}}
+            game:GetService("ReplicatedStorage"):WaitForChild("ffrostflame_bridgenet2@1.0.0"):WaitForChild("dataRemoteEvent"):FireServer(unpack(args))
+            task.wait(1/3)
+         end
+      end)
+   end,
+})
+
+MainTab:CreateSection("Support")
+
+MainTab:CreateButton({
+   Name = "Copy Link (3 ADs)",
+   Callback = function()
+      setclipboard("https://link-target.net/1420992/5pDxJO5SVYxU")
+   end,
+})
+
+MainTab:CreateParagraph({Title = "ADs", Content = "The AD is just a 60 second timer, just wait. Thanks for support!"})
