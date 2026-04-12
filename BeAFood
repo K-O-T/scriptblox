@@ -166,3 +166,7 @@ MainTab:CreateButton({
 })
 
 MainTab:CreateParagraph({Title = "ADs", Content = "The AD is just a 60 second timer, just wait. Thanks for support!"})
+
+local UniTab = Window:CreateTab("Universal")
+UniTab:CreateButton({Name = "Infinite Yield", Callback = function() loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-infinite-yield-131626"))() end})
+UniTab:CreateButton({Name = "Dex Explorer", Callback = function() loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Dex-Explorer-v2-6653"))() end})
