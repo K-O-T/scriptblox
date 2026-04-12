@@ -1,0 +1,164 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "[ Dont Get Caught For Hackers ]",
+   LoadingTitle = "By K7240",
+   LoadingSubtitle = "Loading...",
+   ConfigurationSaving = {
+      Enabled = false,
+      FolderName = "DontGetCaught", 
+      FileName = "Config"
+   }
+})
+
+local Tab = Window:CreateTab("Enjoy!", "heart") -- Иконка Lucide "Heart"
+
+-- 1. Button "Delete Garbage(Robux Buttons)"
+Tab:CreateButton({
+   Name = "Delete Garbage(Robux Buttons)",
+   Callback = function()
+      local map = workspace:FindFirstChild("Map")
+      if map and map:FindFirstChild("LuckyBlocks") then
+         map.LuckyBlocks:Destroy()
+      end
+   end,
+})
+
+-- 2. Button "Delete Cameras"
+Tab:CreateButton({
+   Name = "Delete Cameras",
+   Callback = function()
+      if workspace:FindFirstChild("SecurityCameras") then
+         workspace.SecurityCameras:Destroy()
+      end
+   end,
+})
+
+-- 3. Toggle "Auto Rebirth"
+local AutoRebirthEnabled = false
+Tab:CreateToggle({
+   Name = "Auto Rebirth",
+   CurrentValue = false,
+   Callback = function(Value)
+      AutoRebirthEnabled = Value
+      task.spawn(function()
+         while AutoRebirthEnabled do
+            local event = game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("Server"):WaitForChild("RebirthEvent")
+            event:FireServer()
+            task.wait(1)
+         end
+      end)
+   end,
+})
+
+-- 4. Toggle "Auto Spin Wheel"
+local AutoSpinEnabled = false
+Tab:CreateToggle({
+   Name = "Auto Spin Wheel",
+   CurrentValue = false,
+   Callback = function(Value)
+      AutoSpinEnabled = Value
+      task.spawn(function()
+         while AutoSpinEnabled do
+            local remote = game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("Server"):WaitForChild("ActivateSpin")
+            remote:InvokeServer()
+            task.wait(0.5)
+         end
+      end)
+   end,
+})
+
+-- 5. Button "Get Group Reward (One Time)"
+Tab:CreateButton({
+   Name = "Get Group Reward (One Time)",
+   Callback = function()
+      local rewardEvent = game:GetService("ReplicatedStorage"):FindFirstChild("RemoteEvents"):FindFirstChild("Server"):FindFirstChild("ClaimGroupReward")
+      if rewardEvent then
+         rewardEvent:FireServer()
+      end
+   end,
+})
+
+-- Создаем список имен зон из папки Workspace.Map.Zones
+local zonesFolder = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Zones")
+local zoneNames = {}
+
+if zonesFolder then
+    for _, zone in pairs(zonesFolder:GetChildren()) do
+        table.insert(zoneNames, zone.Name)
+    end
+else
+    table.insert(zoneNames, "Zones not found") -- Заглушка, если папка пуста
+end
+
+-- Dropdown перед секцией Character
+Tab:CreateDropdown({
+   Name = "Teleport to Zone",
+   Options = zoneNames,
+   CurrentOption = "",
+   MultipleOptions = false,
+   Flag = "ZoneDropdown", 
+   Callback = function(Option)
+      local targetZone = zonesFolder:FindFirstChild(Option[1]) -- Rayfield возвращает таблицу для Single Dropdown
+      if targetZone then
+          local char = game.Players.LocalPlayer.Character
+          local hrp = char and char:FindFirstChild("HumanoidRootPart")
+          
+          if hrp then
+              -- Телепортируем к позиции объекта (CFrame)
+              if targetZone:IsA("Model") then
+                  hrp.CFrame = targetZone:GetPivot()
+              else
+                  hrp.CFrame = targetZone.CFrame + Vector3.new(0, 3, 0) -- Чуть выше, чтобы не застрять
+              end
+          end
+      end
+   end,
+})
+
+-- 6. Section "• Character •"
+Tab:CreateSection("• Character •")
+
+-- 7. Slider "Walkspeed"
+local WalkSpeedValue = 16
+Tab:CreateSlider({
+   Name = "Walkspeed",
+   Range = {16, 300},
+   Increment = 1,
+   Suffix = "Speed",
+   CurrentValue = 16,
+   Callback = function(Value)
+      WalkSpeedValue = Value
+   end,
+})
+
+-- Цикл для установки скорости каждый кадр
+game:GetService("RunService").RenderStepped:Connect(function()
+    local char = game.Players.LocalPlayer.Character
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.WalkSpeed = WalkSpeedValue
+    end
+end)
+
+-- 8. Toggle "Noclip"
+local NoclipEnabled = false
+Tab:CreateToggle({
+   Name = "Noclip",
+   CurrentValue = false,
+   Callback = function(Value)
+      NoclipEnabled = Value
+   end,
+})
+
+-- Логика Noclip
+game:GetService("RunService").Stepped:Connect(function()
+    if NoclipEnabled then
+        local char = game.Players.LocalPlayer.Character
+        if char then
+            if char:FindFirstChild("Head") then char.Head.CanCollide = false end
+            if char:FindFirstChild("UpperTorso") then char.UpperTorso.CanCollide = false end
+            if char:FindFirstChild("LowerTorso") then char.LowerTorso.CanCollide = false end
+            if char:FindFirstChild("Torso") then char.Torso.CanCollide = false end -- Для R6
+        end
+    end
+end)
