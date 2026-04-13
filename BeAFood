@@ -1,3 +1,5 @@
+-- This Script Is For "BE A PLANT"!!
+
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local RunService = game:GetService("RunService")
