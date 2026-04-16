@@ -46,7 +46,7 @@ Tab:CreateButton({
 })
 
 Tab:CreateParagraph({Title = "Info.", Content = "To Get Cash You Need Atleast 1 Cat Placed."})
-Tab:CreateParagraph({Title = "Warn!", Content = "Inf Cash May Cause Endless Loading!"})
+Tab:CreateParagraph({Title = "Warn!", Content = "Inf Cash May Cause Endless Loading! It's Probably Can't Be Fixed."})
 
 local HelpSection = Tab:CreateSection("Helpful")
 
@@ -68,7 +68,7 @@ Tab:CreateButton({
    end,
 })
 
-local UniTab = Window:CreateTab("Universal")
+local UniTab = Window:CreateTab("Universal", "shield") 
 UniTab:CreateSection("Most Universal & Popular")
 UniTab:CreateButton({Name = "Infinite Yield", Callback = function() loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))() end})
 UniTab:CreateButton({Name = "Dex Explorer", Callback = function() loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Dex-Explorer-v2-6653"))() end})
