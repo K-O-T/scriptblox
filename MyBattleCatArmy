@@ -1,0 +1,80 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "[ My Battle Cat Army ]",
+   LoadingTitle = "By K7240",
+   LoadingSubtitle = "Loading...",
+   ConfigurationSaving = {
+      Enabled = false,
+      FolderName = "BattleCatConfig",
+      FileName = "MainHub"
+   }
+})
+
+local cashAmount = 100
+
+local Tab = Window:CreateTab("Enjoy!", "heart") 
+
+Tab:CreateInput({
+   Name = "Amount Of Cash",
+   PlaceholderText = "100",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      local num = tonumber(Text)
+      if num then
+         cashAmount = num
+      else
+         cashAmount = 100
+      end
+   end,
+})
+
+Tab:CreateButton({
+   Name = "Get Cash",
+   Callback = function()
+      local args = {
+          "GetCoin",
+          cashAmount
+      }
+      local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remote", 5):WaitForChild("Battle", 5)
+      if remote then
+          remote:FireServer(unpack(args))
+      else
+          Rayfield:Notify({Title = "Error", Content = "Remote not found!", Duration = 3})
+      end
+   end,
+})
+
+Tab:CreateParagraph({Title = "Info.", Content = "To Get Cash You Need Atleast 1 Cat Placed."})
+Tab:CreateParagraph({Title = "Warn!", Content = "Inf Cash May Cause Endless Loading!"})
+
+local HelpSection = Tab:CreateSection("Helpful")
+
+Tab:CreateButton({
+   Name = "Delete Loading Screen",
+   Callback = function()
+      local playerGui = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+      local loadingGui = playerGui:FindFirstChild("LoadingGui")
+      
+      if loadingGui then
+         loadingGui:Destroy()
+      else
+         Rayfield:Notify({
+            Title = "Status",
+            Content = "LoadingGui not found or already deleted.",
+            Duration = 3
+         })
+      end
+   end,
+})
+
+local UniTab = Window:CreateTab("Universal")
+UniTab:CreateSection("Most Universal & Popular")
+UniTab:CreateButton({Name = "Infinite Yield", Callback = function() loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))() end})
+UniTab:CreateButton({Name = "Dex Explorer", Callback = function() loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Dex-Explorer-v2-6653"))() end})
+UniTab:CreateSection("TesterD - Scriptblox.com")
+UniTab:CreateButton({Name = "Blatant Explorer", Callback = function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Ahma174/Scripts/refs/heads/main/BlatantExplorer%20For%20Mobile.luau"))() end})
+UniTab:CreateButton({Name = "Copy Author's Profile Link", Callback = function() setclipboard("https://scriptblox.com/u/TesterD") end})
+UniTab:CreateSection("Intorter - Scriptblox.com")
+UniTab:CreateButton({Name = "Klue Animations", Callback = function() loadstring(game:HttpGet("https://raw.githubusercontent.com/kainenruslana/klue/refs/heads/main/KlueFree"))() end})
+UniTab:CreateButton({Name = "Copy Author's Profile Link", Callback = function() setclipboard("https://scriptblox.com/u/Intorter") end})
