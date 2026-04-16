@@ -62,7 +62,8 @@ Tab:CreateButton({
          Rayfield:Notify({
             Title = "Status",
             Content = "LoadingGui not found or already deleted.",
-            Duration = 3
+            Duration = 3,
+            Image = "x"
          })
       end
    end,
