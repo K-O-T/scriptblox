@@ -1,0 +1,179 @@
+-- Deepwoken Clicker
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ItemsFolder = ReplicatedStorage:WaitForChild("Items")
+
+local Window = Rayfield:CreateWindow({
+    Name = "[ Deepwoken Clicker ]",
+    LoadingTitle = "By K7240",
+    LoadingSubtitle = "Loading...",
+    ConfigurationSaving = { Enabled = false }
+})
+
+local Tab = Window:CreateTab("Enjoy!", "heart")
+
+-- Состояния для папок (Items)
+local SelectedFolders = {}
+local Multipliers = {}
+local RawSetValues = {}
+local InitialValues = {}
+local CurrentMethod = "Multiply"
+
+-- Состояния для конкретных статов (Root)
+local TargetStats = {"CPSTOTAL", "NOTES", "CLICKS", "ECHOES"}
+local StatInputs = {} 
+
+local AutoApply = false
+local ApplyDelay = 1
+
+-- Сбор данных для папок
+local itemOptions = {}
+for _, folder in ipairs(ItemsFolder:GetChildren()) do
+    if folder:IsA("Folder") then
+        table.insert(itemOptions, folder.Name)
+        InitialValues[folder.Name] = {}
+        for _, val in ipairs(folder:GetChildren()) do
+            if val:IsA("NumberValue") then
+                InitialValues[folder.Name][val.Name] = val.Value
+            end
+        end
+    end
+end
+
+-- --- ИНТЕРФЕЙС: УЛУЧШЕНИЯ (FOLDERS) ---
+Tab:CreateDropdown({
+    Name = "Select Upgrades",
+    Options = itemOptions,
+    CurrentOption = {},
+    MultipleOptions = true,
+    Callback = function(Options) SelectedFolders = Options end,
+})
+
+Tab:CreateDropdown({
+    Name = "Method",
+    Options = {"Multiply", "Set", "Additive"},
+    CurrentOption = {"Multiply"},
+    Callback = function(Option) CurrentMethod = Option end,
+})
+
+local firstFolder = ItemsFolder:GetChildren()[1]
+if firstFolder then
+    for _, val in ipairs(firstFolder:GetChildren()) do
+        if val:IsA("NumberValue") then
+            Tab:CreateInput({
+                Name = val.Name .. " Multi",
+                PlaceholderText = "Multiplier",
+                Callback = function(Text) Multipliers[val.Name] = tonumber(Text) end,
+            })
+            Tab:CreateInput({
+                Name = val.Name .. " Value",
+                PlaceholderText = "Value",
+                Callback = function(Text) RawSetValues[val.Name] = tonumber(Text) end,
+            })
+        end
+    end
+end
+
+-- --- СЕКЦИЯ: КОНКРЕТНЫЕ ЗНАЧЕНИЯ ---
+Tab:CreateSection("") 
+
+for _, name in ipairs(TargetStats) do
+    Tab:CreateInput({
+        Name = name .. " Value",
+        PlaceholderText = "Value",
+        Callback = function(Text) StatInputs[name] = tonumber(Text) end,
+    })
+end
+
+-- --- ЛОГИКА ПРИМЕНЕНИЯ ---
+local function ApplyAll()
+    -- 1. Применение к папкам (Items)
+    for _, folderName in ipairs(SelectedFolders) do
+        local folder = ItemsFolder:FindFirstChild(folderName)
+        if folder then
+            for valName, base in pairs(InitialValues[folderName]) do
+                local valObj = folder:FindFirstChild(valName)
+                if valObj then
+                    if CurrentMethod == "Multiply" and Multipliers[valName] then
+                        valObj.Value = base * Multipliers[valName]
+                    elseif CurrentMethod == "Set" and RawSetValues[valName] then
+                        valObj.Value = RawSetValues[valName]
+                    elseif CurrentMethod == "Additive" and RawSetValues[valName] then
+                        valObj.Value = base + RawSetValues[valName]
+                    end
+                end
+            end
+        end
+    end
+
+    -- 2. Применение к конкретным статам (Root)
+    for name, value in pairs(StatInputs) do
+        local obj = ReplicatedStorage:FindFirstChild(name)
+        if obj and obj:IsA("NumberValue") and value ~= nil then
+            obj.Value = value
+        end
+    end
+end
+
+-- --- УПРАВЛЕНИЕ ---
+Tab:CreateToggle({
+    Name = "Auto Apply",
+    CurrentValue = false,
+    Callback = function(Value) AutoApply = Value end,
+})
+
+Tab:CreateInput({
+    Name = "Auto Apply Delay (s)",
+    PlaceholderText = "1",
+    Callback = function(Text) ApplyDelay = tonumber(Text) or 1 end,
+})
+
+task.spawn(function()
+    while true do
+        if AutoApply then ApplyAll() end
+        task.wait(ApplyDelay)
+    end
+end)
+
+Tab:CreateButton({
+    Name = "Apply Now",
+    Callback = function() ApplyAll() end,
+})
+
+Tab:CreateButton({
+    Name = "Get Values [F9]",
+    Callback = function()
+        -- Вывод выбранных папок
+        for _, fName in ipairs(SelectedFolders) do
+            local f = ItemsFolder:FindFirstChild(fName)
+            if f then
+                local s = "[" .. f.Name .. "]"
+                for _, v in ipairs(f:GetChildren()) do
+                    if v:IsA("NumberValue") then s = s .. " " .. v.Name .. ": " .. v.Value end
+                end
+                print(s)
+            end
+        end
+        -- Вывод конкретных статов
+        local res = "[ROOT STATS]"
+        for _, name in ipairs(TargetStats) do
+            local o = ReplicatedStorage:FindFirstChild(name)
+            res = res .. " " .. name .. ": " .. (o and tostring(o.Value) or "N/A")
+        end
+        print(res)
+    end,
+})
+
+local UniTab = Window:CreateTab("Universal", "shield")
+UniTab:CreateSection("Most Universal & Popular")
+UniTab:CreateButton({Name = "Infinite Yield", Callback = function() loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))() end, })
+UniTab:CreateButton({Name = "Dex Explorer", Callback = function() loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Dex-Explorer-v2-6653"))() end, })
+UniTab:CreateSection("TesterD - Scriptblox.com")
+UniTab:CreateButton({Name = "Blatant Explorer", Callback = function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Ahma174/Scripts/refs/heads/main/BlatantExplorer%20For%20Mobile.luau"))() end, })
+UniTab:CreateButton({Name = "Copy Author's Profile Link", Callback = function() setclipboard("https://scriptblox.com/u/TesterD") end, })
+UniTab:CreateSection("Intorter - Scriptblox.com")
+UniTab:CreateButton({Name = "Klue Animations", Callback = function() loadstring(game:HttpGet("https://raw.githubusercontent.com/kainenruslana/klue/refs/heads/main/KlueFree"))() end, })
+UniTab:CreateButton({Name = "Copy Author's Profile Link", Callback = function() setclipboard("https://scriptblox.com/u/Intorter") end, })
+local SupportTab = Window:CreateTab("About", "info")
+SupportTab:CreateParagraph({Title = "[About]", Content = "AI helped script with helpful functions to improve your game experience! \nIf you wanna support me watch 2 ADs by copying link from button. (These ADs usually just are ~60s timers btw, click them both and wait) \nP.S. TYSM!"})
+SupportTab:CreateButton({Name = "Copy Support Link", Callback = function() setclipboard("https://lootdest.org/s?Dycd5UWg") end, })
