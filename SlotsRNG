@@ -179,7 +179,7 @@ UniTab:CreateButton({Name = "Copy Author's Profile Link", Callback = function() 
 
 local SupTab = Window:CreateTab("Support", "heart")
 
-SupTab:CreateParagraph({Title = "[About]", Content = "AI helped script with some helpful functions to improve your game experience! \nIf you wanna support me watch up to 2 ADs by copying link from button. (These ADs always just are timers btw, just click them and wait) \nP.S. TYSM!"})
+SupTab:CreateParagraph({Title = "[About]", Content = "AI helped script with some helpful functions to improve your game experience! \nIf you wanna support me watch up to 2 ADs from the link below. (These ADs always just are timers btw, just click them and wait) \nP.S. TYSM!"})
 
 SupTab:CreateButton({
    Name = "Copy Link",
