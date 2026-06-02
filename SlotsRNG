@@ -1,0 +1,195 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "[ Slots RNG ]",
+   LoadingTitle = "By K7240",
+   LoadingSubtitle = "Loading...",
+   ConfigurationSaving = {
+      Enabled = false
+   },
+   Discord = {
+      Enabled = false
+   },
+   KeySystem = false
+})
+
+local Tab = Window:CreateTab("Main", "square-user")
+
+-- Переменные состояния
+local selectedSpinLevel = "Okay"
+local autoSpinEnabled = false
+local spinDelay = 0.5
+
+local selectedUpgrades = { ["Payout Bonus"] = true }
+local autoUpgradeEnabled = false
+
+local autoRebirthEnabled = false
+local rebirthDelay = 1.0
+
+-- Таблица конвертации названий улучшений
+local upgradeMapping = {
+    ["Payout Bonus"] = "payout",
+    ["Slower Meter"] = "meterSpeed",
+    ["Larger Zones"]  = "zoneWidth",
+    ["Greater Luck"]  = "luck"
+}
+
+-- Раздел: Auto Spin
+Tab:CreateDropdown({
+   Name = "Spin Level",
+   Options = {"Okay", "Great", "Amazing", "Perfect"},
+   CurrentOption = {"Perfect"},
+   MultipleOptions = false,
+   Flag = "SpinLevel",  -- ДОБАВЛЕН Flag
+   Callback = function(Option)
+      if type(Option) == "table" then
+          selectedSpinLevel = Option[1]
+      else
+          selectedSpinLevel = Option
+      end
+   end,
+})
+
+Tab:CreateSlider({
+   Name = "Auto Spin Delay",
+   Range = {0.1, 1},
+   Increment = 0.05,
+   Suffix = "sec",
+   CurrentValue = 0.5,
+   Flag = "SpinDelay",  -- ДОБАВЛЕН Flag
+   Callback = function(Value)
+      spinDelay = Value
+   end,
+})
+
+Tab:CreateToggle({
+   Name = "Auto Spin",
+   CurrentValue = false,
+   Flag = "AutoSpin",  -- ДОБАВЛЕН Flag
+   Callback = function(Value)
+      autoSpinEnabled = Value
+   end,
+})
+
+-- Раздел: Auto Upgrade
+Tab:CreateDropdown({
+   Name = "Upgrades To Auto",
+   Options = {"Payout Bonus", "Slower Meter", "Larger Zones", "Greater Luck"},
+   CurrentOption = {"Payout Bonus"},
+   MultipleOptions = true,
+   Flag = "AutoUpgrades",  -- ДОБАВЛЕН Flag
+   Callback = function(Options)
+      selectedUpgrades = {}
+      if type(Options) == "table" then
+          for _, opt in ipairs(Options) do
+              selectedUpgrades[opt] = true
+          end
+      else
+          selectedUpgrades[Options] = true
+      end
+   end,
+})
+
+Tab:CreateToggle({
+   Name = "Auto Upgrade",
+   CurrentValue = false,
+   Flag = "AutoUpgrade",  -- ДОБАВЛЕН Flag
+   Callback = function(Value)
+      autoUpgradeEnabled = Value
+   end,
+})
+
+-- Раздел: Auto Rebirth
+Tab:CreateSlider({
+   Name = "Auto Rebirth Delay",
+   Range = {0.2, 60},
+   Increment = 0.1,
+   Suffix = "sec",
+   CurrentValue = 1,
+   Flag = "RebirthDelay",  -- ДОБАВЛЕН Flag
+   Callback = function(Value)
+      rebirthDelay = Value
+   end,
+})
+
+Tab:CreateToggle({
+   Name = "Auto Rebirth",
+   CurrentValue = false,
+   Flag = "AutoRebirth",  -- ДОБАВЛЕН Flag
+   Callback = function(Value)
+      autoRebirthEnabled = Value
+   end,
+})
+
+-- Циклы автоматизации
+task.spawn(function()
+    while true do
+        if autoSpinEnabled and selectedSpinLevel then
+            local args = {
+                [1] = selectedSpinLevel,
+                n = 1,
+            }
+            game:GetService("ReplicatedStorage").Events.SpinRequest:FireServer(unpack(args, 1, args.n or #args))
+        end
+        task.wait(spinDelay)
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if autoUpgradeEnabled then
+            for textName, isSelected in pairs(selectedUpgrades) do
+                if isSelected and autoUpgradeEnabled then
+                    local internalUpgradeName = upgradeMapping[textName]
+                    if internalUpgradeName then
+                        local args = {
+                            [1] = internalUpgradeName,
+                            n = 1,
+                        }
+                        game:GetService("ReplicatedStorage").Events.UpgradeRequest:FireServer(unpack(args, 1, args.n or #args))
+                        task.wait(0.2)
+                    end
+                end
+            end
+        end
+        task.wait(0.5)
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if autoRebirthEnabled then
+            game:GetService("ReplicatedStorage").Events.RebirthRequest:FireServer()
+        end
+        task.wait(rebirthDelay)
+    end
+end)
+
+local UniTab = Window:CreateTab("Universal", "shield")
+UniTab:CreateSection("Most Universal & Popular")
+UniTab:CreateButton({Name = "Infinite Yield", Callback = function() loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))() end})
+UniTab:CreateButton({Name = "Dex [Tested with Xeno]", Callback = function() loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-Dex-Explorer-v2-6653"))() end})
+UniTab:CreateButton({Name = "Dex RE [Tested with Potassium]", Callback = function() loadstring(game:HttpGet("https://rawscripts.net/raw/Universal-Script-DEX-REContinued-216140"))() end})
+UniTab:CreateSection("TesterD - Scriptblox.com")
+UniTab:CreateButton({Name = "Blatant Explorer", Callback = function() loadstring(game:HttpGet("https://raw.githubusercontent.com/Ahma174/Scripts/refs/heads/main/BlatantExplorer%20For%20Mobile.luau"))() end})
+UniTab:CreateButton({Name = "Copy Author's Profile Link", Callback = function() setclipboard("https://scriptblox.com/u/TesterD") end})
+UniTab:CreateSection("Intorter - Scriptblox.com")
+UniTab:CreateButton({Name = "Klue Animations", Callback = function() loadstring(game:HttpGet("https://raw.githubusercontent.com/kainenruslana/klue/refs/heads/main/KlueFree"))() end})
+UniTab:CreateButton({Name = "Copy Author's Profile Link", Callback = function() setclipboard("https://scriptblox.com/u/Intorter") end})
+
+local SupTab = Window:CreateTab("Support", "heart")
+
+SupTab:CreateParagraph({Title = "[About]", Content = "AI helped script with some helpful functions to improve your game experience! \nIf you wanna support me watch up to 2 ADs by copying link from button. (These ADs always just are timers btw, just click them and wait) \nP.S. TYSM!"})
+
+SupTab:CreateButton({
+   Name = "Copy Link",
+   Callback = function()
+      setclipboard("https://lootdest.org/s?Dycd5UWg")
+      Rayfield:Notify({
+         Title = "Copied!",
+         Content = "Paste it in your browser.",
+         Duration = 5,
+         Image = "clipboard",
+      })
+   end,
+})
