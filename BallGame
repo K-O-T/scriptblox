@@ -1,0 +1,291 @@
+-- Загрузка библиотеки Rayfield
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+task.wait(1)
+-- Создание главного окна
+local Window = Rayfield:CreateWindow({
+   Name = "[ Ball Game ]",
+   LoadingTitle = "Loading...",
+   LoadingSubtitle = "",
+   ConfigurationSaving = {
+      Enabled = false
+   },
+   Discord = {
+      Enabled = false
+   },
+   KeySystem = false
+})
+
+-- Создание вкладки Main
+local MainTab = Window:CreateTab("Main", "sparkle")
+
+-- Начальные значения переменных (настройки по умолчанию)
+local CashAutoFarm = false
+local CashDelay = 0.01
+local CashMultiplier = 100
+
+local AutoRebirth = false
+local RebirthDelay = 1
+
+local AutoEquipBest = false
+local AutoEquipDelay = 1
+
+local AutoStarRewards = false
+local StarDelay = 0.5
+
+-- Секция: Cash Auto Farm
+MainTab:CreateToggle({
+   Name = "Cash Auto Farm",
+   CurrentValue = false,
+   Flag = "ToggleCashFarm",
+   Callback = function(Value)
+      CashAutoFarm = Value
+      if CashAutoFarm then
+         task.spawn(function()
+            while CashAutoFarm do
+               game:GetService("ReplicatedStorage").BallLandedEvent:FireServer(CashMultiplier)
+               task.wait(CashDelay)
+            end
+         end)
+      end
+   end,
+})
+
+MainTab:CreateSlider({
+   Name = "Cash Gain Delay",
+   Range = {0.01, 1},
+   CurrentValue = 0.01,
+   Increment = 0.01,
+   ValueName = "s.",
+   Flag = "SliderCashDelay",
+   Callback = function(Value)
+      CashDelay = Value
+   end,
+})
+
+MainTab:CreateSlider({
+   Name = "Cash Gain Multiplier",
+   Range = {100, 100000},
+   CurrentValue = 100,
+   Increment = 100,
+   ValueName = "x",
+   Flag = "SliderCashMult",
+   Callback = function(Value)
+      CashMultiplier = Value
+   end,
+})
+
+-- Секция: Auto Rebirth
+MainTab:CreateToggle({
+   Name = "Auto Rebirth",
+   CurrentValue = false,
+   Flag = "ToggleAutoRebirth",
+   Callback = function(Value)
+      AutoRebirth = Value
+      if AutoRebirth then
+         task.spawn(function()
+            while AutoRebirth do
+               game:GetService("ReplicatedStorage").RebirthEvent:InvokeServer()
+               task.wait(RebirthDelay)
+            end
+         end)
+      end
+   end,
+})
+
+MainTab:CreateSlider({
+   Name = "Rebirth Attempt Delay",
+   Range = {1, 30},
+   CurrentValue = 1,
+   Increment = 1,
+   ValueName = "s.",
+   Flag = "SliderRebirthDelay",
+   Callback = function(Value)
+      RebirthDelay = Value
+   end,
+})
+
+-- Секция: Auto Equip Best
+MainTab:CreateToggle({
+   Name = "Auto Equip Best",
+   CurrentValue = false,
+   Flag = "ToggleEquipBest",
+   Callback = function(Value)
+      AutoEquipBest = Value
+      if AutoEquipBest then
+         task.spawn(function()
+            while AutoEquipBest do
+               game:GetService("ReplicatedStorage").EquipBestEvent:FireServer()
+               task.wait(AutoEquipDelay)
+            end
+         end)
+      end
+   end,
+})
+
+MainTab:CreateSlider({
+   Name = "Auto Equip Best Delay",
+   Range = {1, 30},
+   CurrentValue = 1,
+   Increment = 1,
+   ValueName = "s.",
+   Flag = "SliderEquipDelay",
+   Callback = function(Value)
+      AutoEquipDelay = Value
+   end,
+})
+
+-- Секция: Auto Star Rewards
+MainTab:CreateToggle({
+   Name = "Auto Star Rewards",
+   CurrentValue = false,
+   Flag = "ToggleStarRewards",
+   Callback = function(Value)
+      AutoStarRewards = Value
+      if AutoStarRewards then
+         task.spawn(function()
+            while AutoStarRewards do
+               game:GetService("ReplicatedStorage").ShootTargetFunc:InvokeServer()
+               task.wait(StarDelay)
+            end
+         end)
+      end
+   end,
+})
+
+MainTab:CreateSlider({
+   Name = "Auto Star Rewards Delay",
+   Range = {0.5, 10},
+   CurrentValue = 0.5,
+   Increment = 0.5,
+   ValueName = "s.",
+   Flag = "SliderStarDelay",
+   Callback = function(Value)
+      StarDelay = Value
+   end,
+})
+
+-- Информационный параграф
+MainTab:CreateParagraph({
+   Title = "About Star", 
+   Content = "Normally it have 1/300 chance to spawn every second and gives any random boost or cash"
+})
+
+-- Настройки Вебхуков (Вставь свои ссылки)
+local WEBHOOK_FEEDBACK_URL = "https://discord.com/api/webhooks/1523107720863940642/ukdA8qu-sorRvaCHPBgnGDbowFaSXnRaqnEYwzWw7w7aiPsgSIVmrKO_w4kC2ZMdajok"
+local WEBHOOK_ANALYTICS_URL = "https://discord.com/api/webhooks/1524298579861307443/r8uwBSAAwUwVXefx86qebilb_-vKl0evXYnbN4SRyxckAWwnySR9GyELgvSQiLT_TgdG"
+
+-- Сервисы Роблокса
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- Создание вкладки "feed"
+local Feed = Window:CreateTab("Feedback", "hammer")
+
+-- Переменные для хранения состояния
+local feedbackText = ""
+local analyticsEnabled = true
+
+-- Поле ввода для багов/предложений
+local Input = Feed:CreateInput({
+   Name = "Suggestions / Bug Reports",
+   PlaceholderText = "Type Here",
+   RemoveTextAfterFocusLost = false,
+   Callback = function(Text)
+      feedbackText = Text
+   end,
+})
+
+-- Функция отправки вебхука в Discord
+local function sendWebhook(url, content)
+   local success, err = pcall(function()
+      local request = syn and syn.request or http_request or chunk and chunk.request or writefile and request
+      if request then
+         request({
+            Url = url,
+            Method = "POST",
+            Headers = { ["Content-Type"] = "application/json" },
+            Body = HttpService:JSONEncode({ content = content })
+         })
+      else
+         warn("HTTP Request Error.")
+      end
+   end)
+   if not success then warn("Webhook Error: " .. tostring(err)) end
+end
+
+-- Кнопка отправки фидбека
+Feed:CreateButton({
+   Name = "Send",
+   Callback = function()
+      if feedbackText ~= "" then
+         local message = string.format("**[Feedback. %s]:** %s", LocalPlayer.Name, feedbackText)
+         sendWebhook(WEBHOOK_FEEDBACK_URL, message)
+         Rayfield:Notify({ Name = "Successful", Content = "Sent", Duration = 2.5 })
+      else
+         Rayfield:Notify({ Name = "Error", Content = "Type smth", Duration = 2.5 })
+      end
+   end,
+})
+
+-- Пустая секция
+Feed:CreateSection(" ")
+
+-- Функция сбора и отправки аналитики
+local function sendAnalytics()
+   if not analyticsEnabled then return end
+   
+   -- Проверяем количество перерождений перед отправкой
+   local success3, Rebirths = pcall(function() return gethiddenproperty(LocalPlayer.leaderstats.Rebirths, "Value") end)
+   
+   -- Если чтение успешно и значение числовое, проверяем условие
+   if success3 and tonumber(Rebirths) and tonumber(Rebirths) > 22 then
+      local success1, CurrentLuck = pcall(function() return gethiddenproperty(LocalPlayer.PlayerGui.BallGameUI:GetChildren()[12].TextLabel, "Text") end)
+      local success2, Money = pcall(function() return gethiddenproperty(LocalPlayer.leaderstats.Money, "Value") end)
+      local success4, BestRoll = pcall(function() return gethiddenproperty(LocalPlayer.leaderstats["Best Roll"], "Value") end)
+      
+      CurrentLuck = success1 and CurrentLuck or "Error"
+      Money = success2 and Money or "Error"
+      Rebirths = success3 and Rebirths or "Error"
+      BestRoll = success4 and BestRoll or "Error"
+
+      -- Форматирование текста
+      local message = string.format("@%s \n• Current Luck: %s\n• Money: %s\n• Rebirths: %s\n• Best Roll: %s.", 
+         LocalPlayer.Name, 
+         tostring(CurrentLuck), 
+         tostring(Money), 
+         tostring(Rebirths), 
+         tostring(BestRoll)
+      )
+      
+      sendWebhook(WEBHOOK_ANALYTICS_URL, message)
+   end
+end
+
+local Toggle = Feed:CreateToggle({
+   Name = "Analytics",
+   CurrentValue = true,
+   Flag = "AnalyticsToggle",
+   Callback = function(Value)
+      analyticsEnabled = Value
+   end,
+})
+
+Feed:CreateParagraph({
+   Title = "Warn", 
+   Content = "This tab contains discord webhooks"
+})
+
+-- Запуск
+task.spawn(function()
+   task.wait(2) -- Небольшая задержка для загрузки UI игры
+   sendAnalytics()
+end)
+
+-- Ежечасно
+task.spawn(function()
+   while true do
+      task.wait(3600)
+      sendAnalytics()
+   end
+end)
