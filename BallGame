@@ -169,7 +169,7 @@ NewTab:CreateToggle({
 Webhook
 
 ]]--
-local webhookUrl = "https://discord.com/api/webhooks/1528946889955868724/Bh1o_-tSMhAV5ssj5sOrQiNIlhi0qtefQELc2yYLb4Mho63vWefNI26EHPQ88Hc5EV_O"
+local webhookUrl = "https://discord.com/api/webhooks/1528973238678454293/I-PBXUBl8T3ahC05P9mQuIkfje3mdyOu-TfwJfD7nv9lxijYyUdqCU58M66d7_W2WZfM"
 
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
