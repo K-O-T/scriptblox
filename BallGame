@@ -182,7 +182,7 @@ local executor = identifyexecutor and identifyexecutor() or "Unknown Executor"
 
 -- Message Format
 local descriptionText = string.format(
-    "Log: [%s / ID: %d](https://roblox.com/%s). Executor: %s",
+    "Ball Game: [%s / ID: %d](https://roblox.com/%s). Executor: %s",
     username, userId, userId, executor
 )
 
