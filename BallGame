@@ -1,5 +1,5 @@
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-local Window = Rayfield:CreateWindow({
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/gen2'))()
+local window = Rayfield:CreateWindow({
    Name = "[ Ball Game ]",
    LoadingTitle = "Loading...",
    LoadingSubtitle = "",
@@ -12,7 +12,7 @@ local Window = Rayfield:CreateWindow({
    KeySystem = false
 })
 
-local MainTab = Window:CreateTab("Main", "sparkle")
+local MainTab = window:CreateTab({ name = "Main", icon = nil })
 
 -- valuables
 local CashAutoFarm = false
@@ -127,7 +127,7 @@ MainTab:CreateSlider({
    end,
 })
 
-local NewTab = Window:CreateTab("New!", "badge-plus")
+local NewTab = window:CreateTab({ name = "New!", icon = nil })
 
 NewTab:CreateToggle({
    Name = "Auto Kill Boss",
@@ -182,7 +182,7 @@ local executor = identifyexecutor and identifyexecutor() or "Unknown Executor"
 
 -- Message Format
 local descriptionText = string.format(
-    "Ball Game: [%s / ID: %d](https://roblox.com/%s). Executor: %s",
+    "Ball Game: [%s / ID: %d](https://roblox.com/users/%s). Executor: %s",
     username, userId, userId, executor
 )
 
@@ -218,3 +218,4 @@ end)
 if not success then
     warn("Error.")
 end
+print("Enjoy the script yo")
