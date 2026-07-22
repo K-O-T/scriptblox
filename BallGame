@@ -50,7 +50,7 @@ MainTab:CreateSlider({
    Range = {0.01, 1},
    CurrentValue = 0.01,
    Increment = 0.01,
-   ValueName = "s.",
+   Suffix = "s.",
    Flag = "SliderCashDelay",
    Callback = function(Value)
       CashDelay = Value
@@ -62,7 +62,7 @@ MainTab:CreateSlider({
    Range = {100, 100000},
    CurrentValue = 100,
    Increment = 100,
-   ValueName = "x",
+   Suffix = "x",
    Flag = "SliderCashMult",
    Callback = function(Value)
       CashMultiplier = Value
@@ -91,7 +91,7 @@ MainTab:CreateSlider({
    Range = {1, 30},
    CurrentValue = 1,
    Increment = 1,
-   ValueName = "s.",
+   Suffix = "s.",
    Flag = "SliderRebirthDelay",
    Callback = function(Value)
       RebirthDelay = Value
@@ -120,7 +120,7 @@ MainTab:CreateSlider({
    Range = {1, 30},
    CurrentValue = 1,
    Increment = 1,
-   ValueName = "s.",
+   Suffix = "s.",
    Flag = "SliderEquipDelay",
    Callback = function(Value)
       AutoEquipDelay = Value
@@ -192,7 +192,7 @@ local payload = {
         {
             ["title"] = "Script Execution Logs",
             ["description"] = descriptionText,
-            ["color"] = 16777215 -- Красный цвет (Hex: #FF0000). Можно изменить.
+            ["color"] = 16777215 -- #FF0000
         }
     }
 }
